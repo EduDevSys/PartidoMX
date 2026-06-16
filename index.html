@@ -1691,10 +1691,12 @@ async function rollDice(){
   // al final SIEMPRE muestra exactamente la cara que corresponde al
   // resultado real, sin depender de ángulos de rotación CSS.
   let won=false;
+  let wasPausedAtPlayTime=false;
   try{
     const {data,error}=await _sb.rpc('asignar_premio',{p_participante_id:ST.player.id});
     if(error) throw error;
     won = data?.[0]?.exito===true;
+    wasPausedAtPlayTime = data?.[0]?.pausado_out===true;
   }catch(e){
     console.error(e);
     toast('❌ Error de conexión. Reintentando…');
