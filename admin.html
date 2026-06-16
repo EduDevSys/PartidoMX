@@ -72,6 +72,24 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 }
 .btn-out:hover{background:rgba(255,23,68,.2)}
 
+/* ── Zona de peligro (reset total) ── */
+.danger-zone{
+  border-top:1px dashed rgba(255,23,68,.3);
+  padding-top:12px;margin-top:12px;
+}
+.danger-zone-label{
+  font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(255,23,68,.6);font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;
+}
+.btn-reset-all{
+  width:100%;padding:11px;border-radius:10px;
+  background:rgba(255,23,68,.08);border:1.5px solid rgba(255,23,68,.4);
+  color:var(--rl);font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .18s;margin-bottom:8px;
+}
+.btn-reset-all:hover{background:rgba(255,23,68,.18);border-color:var(--rojo)}
+
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
@@ -272,6 +290,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
     <div class="sb-footer">
       <div class="sb-user" id="sb-email">—</div>
       <button class="btn-out" onclick="aOut()">⏻ Cerrar sesión</button>
+      <div class="danger-zone">
+        <div class="danger-zone-label">⚠️ Zona de peligro</div>
+        <button class="btn-reset-all" onclick="openResetModal()">🗑️ Reiniciar dinámica</button>
+      </div>
     </div>
   </div>
 
@@ -357,6 +379,26 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
   </div>
 </div>
 
+<!-- MODAL: Reiniciar dinámica (acción irreversible) -->
+<div class="modal-bg" id="reset-modal">
+  <div class="modal">
+    <h3 style="color:var(--rl)">⚠️ Reiniciar dinámica</h3>
+    <p style="font-size:14px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:14px">
+      Esto <strong style="color:var(--rl)">borrará permanentemente</strong> a todos los participantes y ganadores registrados, y reiniciará el inventario de premios a su cantidad original. La dinámica volverá a su estado inicial, como si la app se usara por primera vez.
+    </p>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:8px">
+      Esta acción <strong>no se puede deshacer</strong>. Escribe <strong style="color:var(--rl)">REINICIAR</strong> para confirmar:
+    </p>
+    <div class="fg">
+      <input type="text" id="reset-confirm-input" placeholder="Escribe REINICIAR" autocomplete="off" oninput="checkResetConfirmInput()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeResetModal()">Cancelar</button>
+      <button class="btn btn-danger" id="btn-reset-confirm" disabled onclick="executeReset()">🗑️ Borrar todo y reiniciar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -417,6 +459,68 @@ async function togglePause(){
   dinamicaPausada = next;
   renderPauseUI();
   toast(next ? '⏸ Dinámica pausada — nadie podrá ganar hasta reanudar' : '▶ Dinámica reanudada');
+}
+
+// ══ REINICIAR DINÁMICA (borrado total, irreversible) ══
+function openResetModal(){
+  document.getElementById('reset-confirm-input').value='';
+  document.getElementById('btn-reset-confirm').disabled=true;
+  document.getElementById('reset-modal').classList.add('on');
+}
+function closeResetModal(){
+  document.getElementById('reset-modal').classList.remove('on');
+}
+function checkResetConfirmInput(){
+  const val=document.getElementById('reset-confirm-input').value.trim();
+  document.getElementById('btn-reset-confirm').disabled = (val !== 'REINICIAR');
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.getElementById('reset-modal').classList.contains('on')){
+    if(!document.getElementById('btn-reset-confirm').disabled) executeReset();
+  }
+});
+
+async function executeReset(){
+  const btn=document.getElementById('btn-reset-confirm');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin" style="border-top-color:#fff"></span> Reiniciando…';
+
+  try{
+    // 1) Borrar todos los participantes
+    const {error: errParts} = await _sb.from('participantes').delete().neq('id','00000000-0000-0000-0000-000000000000');
+    if(errParts) throw errParts;
+
+    // 2) Restaurar inventario: cantidad_restante = cantidad_total, asignados/entregados en 0
+    const {data: prizes, error: errPrizesGet} = await _sb.from('premios').select('id,cantidad_total');
+    if(errPrizesGet) throw errPrizesGet;
+
+    for(const p of (prizes||[])){
+      await _sb.from('premios').update({
+        cantidad_restante: p.cantidad_total,
+        cantidad_asignada: 0,
+        cantidad_entregada: 0,
+      }).eq('id', p.id);
+    }
+
+    // 3) Quitar pausa si estaba activa
+    await _sb.rpc('set_pausa',{p_pausado:false});
+    dinamicaPausada=false;
+    renderPauseUI();
+
+    closeResetModal();
+    toast('✅ Dinámica reiniciada — todo quedó como al inicio');
+
+    // Refrescar todas las vistas
+    await Promise.all([loadDash(),loadParts(),loadInventory()]);
+
+  } catch(err){
+    console.error(err);
+    toast('❌ Error al reiniciar. Intenta de nuevo.');
+  } finally{
+    btn.innerHTML='🗑️ Borrar todo y reiniciar';
+    btn.disabled=true;
+    document.getElementById('reset-confirm-input').value='';
+  }
 }
 
 // ══ INIT ══
