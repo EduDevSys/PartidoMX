@@ -1653,70 +1653,54 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 // ══════════════════════════════════════════
-//  TRIVIA — México en mundiales
+//  TRIVIA — México en mundiales (1 sola pregunta al azar)
 // ══════════════════════════════════════════
-const TRIVIA_FACILES = [
-  { q:'¿Cómo se le conoce popularmente a la Selección Mexicana de fútbol?',
-    opts:['La Máquina','El Tri','Los Azules','La Roja'], correct:1 },
-  { q:'¿Por qué a la Selección Mexicana le dicen "El Tri"?',
-    opts:['Porque ha ganado tres Mundiales','Por los tres colores de la bandera de México','Porque siempre juega con tres delanteros','Porque tiene tres capitanes'], correct:1 },
-  { q:'¿Cuál es el color más representativo del uniforme tradicional de México en los Mundiales?',
-    opts:['Azul','Verde','Morado','Naranja'], correct:1 },
-  { q:'Cuando juega México en un Mundial, ¿qué quiere decir que avanzó de grupo?',
-    opts:['Que ya fue campeón','Que pasó a la siguiente ronda','Que cambió de estadio','Que descansó un partido'], correct:1 },
-];
-
-const TRIVIA_MEDIAS = [
-  { q:'¿Cuál ha sido el mejor resultado de México en la historia de los Mundiales?',
-    opts:['Ser campeón','Llegar a semifinales','Llegar a cuartos de final','Ganar todos sus partidos de grupo'], correct:2 },
-  { q:'¿Contra qué selección ganó México un partido muy recordado para avanzar en una de sus mejores actuaciones mundialistas?',
-    opts:['Francia','Brasil','Bulgaria','Inglaterra'], correct:2 },
-  { q:'¿Qué nombre le da mucha gente en México al partido en el que la selección podría meterse entre las 8 mejores del Mundial?',
-    opts:['El partido dorado','El quinto partido','La gran final','El juego perfecto'], correct:1 },
-  { q:'¿En cuáles rondas ha quedado muchas veces México en la era moderna de los Mundiales?',
-    opts:['Final y semifinal','Octavos de final','Solo en repechaje','Siempre en cuartos'], correct:1 },
-];
-
-const TRIVIA_DIFICILES = [
-  { q:'¿Qué jugador mexicano hizo un gol muy famoso de media tijera en un Mundial?',
+const TRIVIA_BANK = [
+  { q:'¿Qué jugador mexicano anotó el gol de media tijera que años después fue votado por la FIFA como el mejor gol en la historia de los Mundiales?',
     opts:['Hugo Sánchez','Cuauhtémoc Blanco','Manuel Negrete','Rafa Márquez'], correct:2 },
-  { q:'¿Qué tienen en común las dos mejores actuaciones de México en los Mundiales?',
-    opts:['Fueron contra el mismo rival','México anotó 5 goles en cada una','Se lograron cuando México fue anfitrión','Se definieron en tiempo extra'], correct:2 },
+  { q:'¿Cuál ha sido la mejor ronda alcanzada por México en un Mundial?',
+    opts:['Semifinal','Final','Cuartos de final','Tercer lugar'], correct:2 },
+  { q:'¿Cuántas veces ha llegado México a cuartos de final en Mundiales?',
+    opts:['Una vez','Dos veces','Tres veces','Cinco veces'], correct:1 },
+  { q:'¿Qué tienen en común las dos mejores actuaciones de México en Mundiales?',
+    opts:['Fueron en Europa','Fueron contra Brasil','México fue anfitrión','México quedó campeón de grupo'], correct:2 },
+  { q:'¿Qué selección derrotó a México en uno de sus partidos más recordados para avanzar de ronda?',
+    opts:['Italia','Francia','Bulgaria','Argentina'], correct:2 },
+  { q:'¿Qué nombre recibe en México el objetivo de llegar a cuartos de final?',
+    opts:['El partido del honor','El quinto partido','La ronda final','La zona campeona'], correct:1 },
+  { q:'¿En qué ronda se ha quedado México con mucha frecuencia en los Mundiales recientes?',
+    opts:['Fase de grupos','Octavos de final','Semifinal','Final'], correct:1 },
+  { q:'¿Qué color NO forma parte del apodo "El Tri"?',
+    opts:['Verde','Blanco','Rojo','Azul'], correct:3 },
+  { q:'¿Qué selección eliminó a México por penales en una de sus campañas más recordadas?',
+    opts:['Italia','Argentina','Alemania Federal','Brasil'], correct:2 },
+  { q:'¿Qué describe mejor el historial de México en los Mundiales?',
+    opts:['Siempre ha llegado a semifinales','Solo ha jugado una vez','Ha sido constante, pero se ha quedado muchas veces en octavos','Nunca ha ganado un partido'], correct:2 },
 ];
 
 let triviaTimeout=null;
-let triviaAttempt=1;       // intento actual (1, 2 o 3)
-let usedQuestionIdx=[];    // evita repetir la misma pregunta en los 3 intentos
+let lastQuestionIdx=-1;  // evita repetir la misma pregunta dos veces seguidas para el mismo jugador
 
 function startTrivia(playerWon){
   if(!playerWon){ showResult(ST.player); show('s-res'); return; }
-  triviaAttempt=1; usedQuestionIdx=[];
   show('s-trivia');
   askTriviaQuestion();
 }
 
 function pickQuestion(){
-  // Intento 1 = fácil, intento 2 = media, intento 3 = difícil
-  const bank = triviaAttempt===1 ? TRIVIA_FACILES
-             : triviaAttempt===2 ? TRIVIA_MEDIAS
-             : TRIVIA_DIFICILES;
-
   let idx;
-  let tries=0;
   do{
-    idx=~~(Math.random()*bank.length);
-    tries++;
-  } while(usedQuestionIdx.includes(`${triviaAttempt}-${idx}`) && tries<20);
-  usedQuestionIdx.push(`${triviaAttempt}-${idx}`);
-  return bank[idx];
+    idx = ~~(Math.random()*TRIVIA_BANK.length);
+  } while(idx === lastQuestionIdx && TRIVIA_BANK.length > 1);
+  lastQuestionIdx = idx;
+  return TRIVIA_BANK[idx];
 }
 
 function askTriviaQuestion(){
   const q=pickQuestion();
-  const dificultad = triviaAttempt===1 ? '🟢 Fácil' : triviaAttempt===2 ? '🟡 Media' : '🔴 Difícil';
 
-  document.getElementById('tv-attempts').textContent=`Intento ${triviaAttempt} de 3 — ${dificultad}`;
-  document.getElementById('tv-qnum').textContent=`Pregunta ${triviaAttempt}`;
+  document.getElementById('tv-attempts').textContent='🏆 ¡Responde para confirmar tu premio!';
+  document.getElementById('tv-qnum').textContent='Pregunta ganadora';
   document.getElementById('tv-q').textContent=q.q;
   document.getElementById('tv-result').style.display='none';
 
@@ -1759,15 +1743,13 @@ async function checkAnswer(idx, correct, el){
 }
 
 async function handleAttemptResult(isCorrect){
-  // Registrar el intento en Supabase (también controla reversión de premio si se agotan)
-  let rpcData=null;
+  // Registrar el resultado en Supabase (controla reversión de premio si falla)
   try{
-    const {data,error}=await _sb.rpc('registrar_intento_trivia',{
+    const {error}=await _sb.rpc('registrar_intento_trivia',{
       p_participante_id: ST.player.id,
       p_acerto: isCorrect
     });
     if(error) throw error;
-    rpcData=data?.[0];
   }catch(e){ console.error(e); }
 
   const resEl=document.getElementById('tv-result');
@@ -1779,22 +1761,10 @@ async function handleAttemptResult(isCorrect){
     resEl.textContent='✅ ¡Correcto! ¡Has confirmado tu premio!';
     await sleep(1700);
     await finalizeTrivia(true);
-    return;
-  }
-
-  // Incorrecta — ¿quedan intentos?
-  if(triviaAttempt < 3){
-    resEl.style.background='rgba(255,23,68,.15)';
-    resEl.style.color='var(--rojo)';
-    resEl.textContent=`❌ Incorrecto. Te queda${triviaAttempt===2?'':'n'} ${3-triviaAttempt} intento${3-triviaAttempt===1?'':'s'}.`;
-    await sleep(1900);
-    triviaAttempt++;
-    askTriviaQuestion();
   } else {
-    // Se agotaron los 3 intentos
     resEl.style.background='rgba(255,23,68,.15)';
     resEl.style.color='var(--rojo)';
-    resEl.textContent='❌ Agotaste tus 3 intentos. ¡Más suerte la próxima vez!';
+    resEl.textContent='❌ Respuesta incorrecta. ¡Más suerte la próxima vez!';
     await sleep(2000);
     await finalizeTrivia(false);
   }
