@@ -506,11 +506,27 @@ body::before{
   85%  {transform:rotateY(2880deg) translateY(-8px)}
   100% {transform:rotateY(3060deg) translateY(0)}
 }
+/* coin-front = ÁGUILA (rotateY 0°/360°/720°...).
+   coin-back  = SOL    (rotateY 180°/540°/900°...).
+   Para terminar mostrando ÁGUILA, el ángulo final debe ser
+   múltiplo exacto de 360°. Para terminar en SOL, debe ser
+   360°×n + 180°. Los giros intermedios son iguales (mismo
+   efecto visual de giro), solo cambia el ángulo final exacto. */
+.coin.flipping.land-aguila{
+  animation-name:coinFlipAguila;
+}
 .coin.flipping.land-sol{
   animation-name:coinFlipSol;
 }
-.coin.flipping.land-aguila{
-  animation-name:coinFlipAguila;
+@keyframes coinFlipAguila{
+  0%   {transform:rotateY(0deg)    translateY(0)}
+  10%  {transform:rotateY(360deg)  translateY(-40px)}
+  25%  {transform:rotateY(900deg)  translateY(-90px)}
+  40%  {transform:rotateY(1440deg) translateY(-110px)}
+  55%  {transform:rotateY(1980deg) translateY(-90px)}
+  70%  {transform:rotateY(2520deg) translateY(-40px)}
+  85%  {transform:rotateY(2880deg) translateY(-8px)}
+  100% {transform:rotateY(2880deg) translateY(0)}  /* 2880 = 360×8 → múltiplo exacto = ÁGUILA al frente */
 }
 @keyframes coinFlipSol{
   0%   {transform:rotateY(0deg)    translateY(0)}
@@ -520,17 +536,7 @@ body::before{
   55%  {transform:rotateY(1980deg) translateY(-90px)}
   70%  {transform:rotateY(2520deg) translateY(-40px)}
   85%  {transform:rotateY(2880deg) translateY(-8px)}
-  100% {transform:rotateY(3060deg) translateY(0)}  /* termina en múltiplo de 360 = misma cara que empezó (sol al frente) */
-}
-@keyframes coinFlipAguila{
-  0%   {transform:rotateY(0deg)    translateY(0)}
-  10%  {transform:rotateY(360deg)  translateY(-40px)}
-  25%  {transform:rotateY(900deg)  translateY(-90px)}
-  40%  {transform:rotateY(1440deg) translateY(-110px)}
-  55%  {transform:rotateY(1980deg) translateY(-90px)}
-  70%  {transform:rotateY(2520deg) translateY(-40px)}
-  85%  {transform:rotateY(2870deg) translateY(-8px)}
-  100% {transform:rotateY(3060deg) rotateX(180deg) translateY(0)} /* termina volteada = águila al frente */
+  100% {transform:rotateY(3060deg) translateY(0)}  /* 3060 = 360×8+180 → SOL al frente */
 }
 .coin-face{
   position:absolute;inset:0;
@@ -1035,7 +1041,7 @@ body::before{
 
     <div class="dice-arena" id="dice-arena">
       <div class="coin-instruction" id="dice-inst">
-        Toca la moneda para lanzarla<br><strong>¡Un solo intento!</strong>
+        La moneda girará en automático<br><strong>¡Un solo intento!</strong>
       </div>
 
       <!-- Countdown ring (shown before tap) -->
@@ -1051,7 +1057,7 @@ body::before{
       </div>
 
       <!-- Coin -->
-      <div class="coin-wrap" id="dice-wrap" onclick="rollDice()">
+      <div class="coin-wrap" id="dice-wrap">
         <div class="coin" id="the-dice">
           <div class="coin-face coin-front">
             <div class="cf-emoji">🦅</div>
@@ -1701,15 +1707,10 @@ function startGameCountdown(){
     else{
       clearInterval(gameCountTimer);
       wrap.style.display='none';
-      document.getElementById('dice-inst').style.display='block';
-      document.getElementById('dice-inst').innerHTML='¡<strong>TOCA LA MONEDA</strong> para lanzarla! 🪙';
       playFinalBeep();
-      document.getElementById('gmsg').textContent='👆 ¡Es tu momento!';
-      // Pulsing coin hint
-      document.getElementById('dice-wrap').style.animation='resultpop .5s ease';
-      // Mostrar dedo animado indicando dónde tocar
-      document.getElementById('tap-finger').style.display='block';
-      document.getElementById('tap-ripple').style.display='block';
+      document.getElementById('gmsg').textContent='🪙 ¡Aquí vamos!';
+      // La moneda gira automáticamente, sin esperar toque del usuario
+      rollDice();
     }
   },1000);
 }
@@ -1719,7 +1720,7 @@ async function rollDice(){
   diceRolled=true;
   resumeAudio();
 
-  document.getElementById('dice-inst').textContent='🪙 ¡Lanzando!';
+  document.getElementById('dice-inst').style.display='none';
   document.getElementById('gmsg').textContent='';
   document.getElementById('tap-finger').style.display='none';
   document.getElementById('tap-ripple').style.display='none';
@@ -1737,9 +1738,10 @@ async function rollDice(){
     won = data?.[0]?.exito===true;
   }catch(e){
     console.error(e);
-    toast('❌ Error de conexión. Intenta de nuevo.');
+    toast('❌ Error de conexión. Reintentando…');
     diceRolled=false;
-    document.getElementById('dice-inst').textContent='Toca la moneda para lanzarla';
+    await sleep(1200);
+    rollDice();
     return;
   }
 
