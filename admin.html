@@ -254,7 +254,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 <body>
 
 <!-- ══ LOGIN ══ -->
-<div id="login-screen">
+<div id="login-screen" style="display:none">
   <div class="login-card">
     <div class="login-title">⚙️ ADMIN PANEL</div>
     <div class="login-sub">México vs Corea — Dinámica de premios</div>
@@ -407,6 +407,31 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 
 const ST={ session:null, parts:[], prizes:[] };
 
+// ══ RESTAURAR SESIÓN AL CARGAR LA PÁGINA ══
+// Supabase guarda la sesión en localStorage por defecto; aquí la
+// recuperamos para que un F5 no obligue a iniciar sesión de nuevo.
+window.addEventListener('DOMContentLoaded', async ()=>{
+  const {data} = await _sb.auth.getSession();
+  if(data?.session){
+    ST.session = data.session;
+    document.getElementById('sb-email').textContent = data.session.user.email;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('main-app').style.display='flex';
+    initApp();
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+  }
+});
+
+// Si la sesión expira o se cierra desde otra pestaña, refleja el cambio aquí
+_sb.auth.onAuthStateChange((event, session)=>{
+  if(event === 'SIGNED_OUT'){
+    ST.session = null;
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('main-app').style.display='none';
+  }
+});
+
 // ══ LOGIN ══
 async function aLogin(){
   const email=document.getElementById('au').value.trim();
@@ -485,22 +510,40 @@ async function executeReset(){
   btn.disabled=true;
   btn.innerHTML='<span class="spin" style="border-top-color:#fff"></span> Reiniciando…';
 
-  try{
-    // 1) Borrar todos los participantes
-    const {error: errParts} = await _sb.from('participantes').delete().neq('id','00000000-0000-0000-0000-000000000000');
-    if(errParts) throw errParts;
+  let partsOk = false;
+  let prizesOk = false;
 
-    // 2) Restaurar inventario: cantidad_restante = cantidad_total, asignados/entregados en 0
+  try{
+    // 1) Restaurar inventario PRIMERO (esto casi nunca falla por RLS,
+    //    así que si algo sale mal después, al menos esto ya quedó bien)
     const {data: prizes, error: errPrizesGet} = await _sb.from('premios').select('id,cantidad_total');
-    if(errPrizesGet) throw errPrizesGet;
+    if(errPrizesGet) throw new Error('No se pudo leer el inventario: '+errPrizesGet.message);
 
     for(const p of (prizes||[])){
-      await _sb.from('premios').update({
+      const {error: errUpd} = await _sb.from('premios').update({
         cantidad_restante: p.cantidad_total,
         cantidad_asignada: 0,
         cantidad_entregada: 0,
       }).eq('id', p.id);
+      if(errUpd) throw new Error('No se pudo actualizar un premio: '+errUpd.message);
     }
+    prizesOk = true;
+
+    // 2) Borrar todos los participantes
+    const {error: errParts} = await _sb
+      .from('participantes')
+      .delete()
+      .neq('id','00000000-0000-0000-0000-000000000000');
+
+    if(errParts){
+      // Caso típico: falta la policy de DELETE en Supabase (RLS)
+      throw new Error(
+        'No se pudieron borrar los participantes (' + errParts.message + '). ' +
+        'Es probable que falte el permiso de DELETE en Supabase: ejecuta el archivo ' +
+        '"fix_delete_policy.sql" en el SQL Editor de tu proyecto.'
+      );
+    }
+    partsOk = true;
 
     // 3) Quitar pausa si estaba activa
     await _sb.rpc('set_pausa',{p_pausado:false});
@@ -510,13 +553,17 @@ async function executeReset(){
     closeResetModal();
     toast('✅ Dinámica reiniciada — todo quedó como al inicio');
 
-    // Refrescar todas las vistas
-    await Promise.all([loadDash(),loadParts(),loadInventory()]);
-
   } catch(err){
     console.error(err);
-    toast('❌ Error al reiniciar. Intenta de nuevo.');
+    const detalle = err?.message || 'Error desconocido';
+    if(prizesOk && !partsOk){
+      toast('⚠️ Inventario reiniciado, pero faltó borrar participantes. Revisa permisos en Supabase.', 5500);
+    } else {
+      toast('❌ ' + detalle, 5500);
+    }
   } finally{
+    // Refrescar todas las vistas siempre, para reflejar lo que sí se logró
+    await Promise.all([loadDash(),loadParts(),loadInventory()]);
     btn.innerHTML='🗑️ Borrar todo y reiniciar';
     btn.disabled=true;
     document.getElementById('reset-confirm-input').value='';
