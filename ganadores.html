@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#050505">
 <title>🏆 Tablero de Ganadores — México vs Corea</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -287,7 +288,7 @@ body::before{
   </div>
 
   <!-- STATS -->
-  <div class="stats-row">
+  <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
     <div class="scard gold">
       <div class="snum" id="st-parts">0</div>
       <div class="slbl">Participantes</div>
@@ -295,14 +296,6 @@ body::before{
     <div class="scard green">
       <div class="snum" id="st-win">0</div>
       <div class="slbl">Ganadores 🏆</div>
-    </div>
-    <div class="scard">
-      <div class="snum" id="st-inv">—</div>
-      <div class="slbl">Premios restantes</div>
-    </div>
-    <div class="scard">
-      <div class="snum" id="st-dlv">0</div>
-      <div class="slbl">Entregados ✅</div>
     </div>
   </div>
 
@@ -359,13 +352,11 @@ body::before{
   <div class="cel-code" id="cel-code">-----</div>
 </div>
 
+<button id="music-toggle2" onclick="toggleMusic2()" style="position:fixed;bottom:16px;left:16px;z-index:500;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.6);width:44px;height:44px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(12px)">🔊</button>
+
 <script>
 'use strict';
-const SUPABASE_URL  = 'https://earzupjzrnkhthinnjnu.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhcnp1cGp6cm5raHRoaW5uam51Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ4NDIsImV4cCI6MjA5NzEyMDg0Mn0.W0Rkob51GBIVysF3nDmvv-ySAZb6uE5KEMx7_BZvPrg';
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  realtime:{ params:{ eventsPerSecond:20 } }
-});
+// SUPABASE_URL, SUPABASE_ANON y _sb vienen de config.js
 
 // ── Audio ──
 const AC2 = new (window.AudioContext||window.webkitAudioContext)();
@@ -383,6 +374,69 @@ function fanfare(){
   [440,554,659,880].forEach((f,i)=>tone(f,'triangle',.3,.2,i*.12+.05));
 }
 document.addEventListener('click',()=>AC2.resume(),{once:true});
+
+// ── Música de fondo mundialista (loop) — mismo motor que index.html ──
+const MUSIC_BPM2=128, BEAT2=60/MUSIC_BPM2, BAR2=BEAT2*4;
+const CHORDS2=[[164.81,196.00,246.94],[130.81,164.81,196.00],[196.00,246.94,293.66],[146.83,185.00,220.00]];
+const BASS2=[82.41,65.41,98.00,73.42];
+let musicPlaying2=false, musicTimer2=null, musicMuted2=false;
+
+function mKick(t){
+  const o=AC2.createOscillator(),g=AC2.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(120,t);
+  o.frequency.exponentialRampToValueAtTime(40,t+.15);
+  g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+  o.connect(g);g.connect(AC2.destination); o.start(t);o.stop(t+.2);
+}
+function mHat(t,vol){
+  const bs=AC2.sampleRate*.04, buf=AC2.createBuffer(1,bs,AC2.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<bs;i++) d[i]=(Math.random()*2-1)*(1-i/bs);
+  const src=AC2.createBufferSource(); src.buffer=buf;
+  const g=AC2.createGain(); g.gain.value=vol;
+  const hp=AC2.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7000;
+  src.connect(hp); hp.connect(g); g.connect(AC2.destination); src.start(t);
+}
+function mBass(t,f){
+  const o=AC2.createOscillator(),g=AC2.createGain();
+  o.type='triangle'; o.frequency.value=f;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.24,t+.02);
+  g.gain.exponentialRampToValueAtTime(.001,t+BEAT2*1.8);
+  o.connect(g);g.connect(AC2.destination); o.start(t);o.stop(t+BEAT2*2);
+}
+function mArp(t,freqs){
+  freqs.forEach((f,i)=>{
+    const o=AC2.createOscillator(),g=AC2.createGain();
+    o.type='triangle'; o.frequency.value=f*2;
+    const st=t+i*(BEAT2/2);
+    g.gain.setValueAtTime(0,st); g.gain.linearRampToValueAtTime(.08,st+.02);
+    g.gain.exponentialRampToValueAtTime(.001,st+BEAT2*.45);
+    o.connect(g);g.connect(AC2.destination); o.start(st);o.stop(st+BEAT2*.5);
+  });
+}
+function scheduleBar2(idx,t){
+  if(musicMuted2) return;
+  const ci=idx%CHORDS2.length;
+  mKick(t); mKick(t+BEAT2*2);
+  for(let i=0;i<8;i++) mHat(t+i*(BEAT2/2), i%2===0?.09:.05);
+  mBass(t,BASS2[ci]); mBass(t+BEAT2*2,BASS2[ci]);
+  mArp(t,CHORDS2[ci]);
+}
+function startMusic2(){
+  if(musicPlaying2) return;
+  musicPlaying2=true; AC2.resume();
+  let bar=0;
+  const look=()=>{ if(!musicPlaying2) return; scheduleBar2(bar,AC2.currentTime+0.05); bar++; };
+  look(); musicTimer2=setInterval(look,BAR2*1000);
+}
+function stopMusic2(){ musicPlaying2=false; clearInterval(musicTimer2); }
+function toggleMusic2(){
+  musicMuted2=!musicMuted2;
+  const btn=document.getElementById('music-toggle2');
+  if(btn) btn.textContent=musicMuted2?'🔇':'🔊';
+}
+document.addEventListener('click', ()=>{ if(!musicPlaying2) startMusic2(); }, {once:true});
+// Auto-arranca tras 1s (tablero proyectado, sin interacción del público)
+setTimeout(()=>{ try{ AC2.resume(); startMusic2(); }catch(e){} }, 1000);
 
 // ── Stars ──
 (function(){
@@ -441,18 +495,11 @@ window.addEventListener('DOMContentLoaded', async()=>{
 });
 
 async function loadInitial(){
-  const [{data:parts},{data:wins},{data:inv},{data:dlv}] = await Promise.all([
-    _sb.from('participantes').select('count',{count:'exact',head:true}),
-    _sb.from('participantes').select('count',{count:'exact',head:true}).eq('resultado','ganador'),
-    _sb.from('premios').select('cantidad_restante').eq('activo',true),
-    _sb.from('participantes').select('count',{count:'exact',head:true}).eq('premio_entregado',true),
+  const [{count:parts},{count:wins}] = await Promise.all([
+    _sb.from('participantes').select('*',{count:'exact',head:true}),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador'),
   ]);
-  updateStats({
-    parts: parts??0,
-    wins: wins??0,
-    inv: inv?.reduce((s,p)=>s+p.cantidad_restante,0)??0,
-    dlv: dlv??0,
-  });
+  updateStats({ parts: parts??0, wins: wins??0 });
 
   // Load existing winners
   const {data:existing}=await _sb
@@ -470,20 +517,16 @@ async function loadInitial(){
 }
 
 async function refreshStats(){
-  const [{data:p},{data:w},{data:i},{data:d}]=await Promise.all([
-    _sb.from('participantes').select('count',{count:'exact',head:true}),
-    _sb.from('participantes').select('count',{count:'exact',head:true}).eq('resultado','ganador'),
-    _sb.from('premios').select('cantidad_restante').eq('activo',true),
-    _sb.from('participantes').select('count',{count:'exact',head:true}).eq('premio_entregado',true),
+  const [{count:p},{count:w}]=await Promise.all([
+    _sb.from('participantes').select('*',{count:'exact',head:true}),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador'),
   ]);
-  updateStats({parts:p??0,wins:w??0,inv:i?.reduce((s,x)=>s+x.cantidad_restante,0)??0,dlv:d??0});
+  updateStats({parts:p??0,wins:w??0});
 }
 
-function updateStats({parts,wins,inv,dlv}){
+function updateStats({parts,wins}){
   document.getElementById('st-parts').textContent=parts;
   document.getElementById('st-win').textContent=wins;
-  document.getElementById('st-inv').textContent=inv;
-  document.getElementById('st-dlv').textContent=dlv;
 }
 
 // ── Realtime subscription ──
@@ -518,8 +561,12 @@ function onNewWinner(winner){
   showSpotlight(winner, true);
   showCelebration(winner);
   doConfetti();
+  // Bajar música de fondo durante la fanfarria
+  const wasMuted=musicMuted2;
+  musicMuted2=true;
   fanfare();
   AC2.resume();
+  setTimeout(()=>{ musicMuted2=wasMuted; }, 2200);
 }
 
 // ── Spotlight ──
