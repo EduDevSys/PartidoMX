@@ -76,20 +76,21 @@ body::before{
 .top-bar{
   width:100%;
   background:linear-gradient(135deg,var(--verde-dark),#003d20);
-  padding:18px 20px 14px;
+  padding:28px 24px 22px;
   display:flex;align-items:center;justify-content:space-between;
-  border-bottom:2px solid var(--oro);
-  box-shadow:0 4px 30px rgba(0,0,0,.5);
+  border-bottom:3px solid var(--oro);
+  box-shadow:0 6px 40px rgba(0,0,0,.6);
   flex-shrink:0;
 }
 .top-bar .match{
-  font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;
-  color:var(--oro);text-shadow:0 0 20px rgba(255,214,0,.8);
+  font-family:'Bebas Neue';font-size:clamp(26px,7vw,38px);letter-spacing:3px;
+  color:var(--oro);text-shadow:0 0 24px rgba(255,214,0,.9);
+  line-height:1.05;
 }
-.top-bar .flags{font-size:26px;letter-spacing:4px}
+.top-bar .flags{font-size:clamp(34px,9vw,52px);letter-spacing:4px;filter:drop-shadow(0 0 14px rgba(255,214,0,.5))}
 .top-bar .ev-label{
-  font-size:10px;letter-spacing:3px;text-transform:uppercase;
-  color:rgba(255,255,255,.55);margin-top:2px;
+  font-size:clamp(11px,2.6vw,14px);letter-spacing:3px;text-transform:uppercase;
+  color:rgba(255,255,255,.65);margin-top:4px;font-weight:700;
 }
 
 /* ══════════════════════════════════════════
@@ -153,15 +154,119 @@ body::before{
 }
 
 /* ══════════════════════════════════════════
-   SCREEN 1: HOME
+   MODAL DE BIENVENIDA (activa el audio)
 ══════════════════════════════════════════ */
-#s-home{background:transparent}
+#welcome-modal{
+  position:fixed;inset:0;z-index:2000;
+  background:radial-gradient(ellipse at 50% 30%,#0d2b1a 0%,#020203 75%);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;overflow:hidden;
+}
+#welcome-modal.hide{display:none}
+.wm-floaters{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.wm-float-emoji{
+  position:absolute;
+  font-size:clamp(28px,7vw,46px);
+  opacity:0;
+  animation:wmFloat linear infinite;
+  filter:drop-shadow(0 0 10px rgba(255,214,0,.3));
+}
+@keyframes wmFloat{
+  0%{transform:translateY(110vh) rotate(0deg) scale(.8);opacity:0}
+  8%{opacity:.85}
+  92%{opacity:.85}
+  100%{transform:translateY(-15vh) rotate(360deg) scale(1.1);opacity:0}
+}
+.wm-card{
+  position:relative;z-index:2;
+  max-width:440px;width:100%;
+  text-align:center;
+  background:rgba(255,255,255,.05);
+  border:2px solid rgba(255,214,0,.3);
+  border-radius:32px;
+  padding:clamp(32px,8vw,48px) clamp(24px,6vw,36px);
+  box-shadow:0 20px 80px rgba(0,0,0,.7),0 0 60px rgba(255,214,0,.15);
+  animation:wmCardIn .6s cubic-bezier(.175,.885,.32,1.275) both;
+}
+@keyframes wmCardIn{
+  from{transform:scale(.7) translateY(30px);opacity:0}
+  to{transform:scale(1) translateY(0);opacity:1}
+}
+.wm-icon{
+  font-size:clamp(56px,14vw,84px);
+  margin-bottom:18px;
+  animation:wmIconBounce 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px rgba(255,214,0,.6));
+}
+@keyframes wmIconBounce{
+  0%,100%{transform:translateY(0) rotate(-5deg)}
+  50%{transform:translateY(-14px) rotate(5deg)}
+}
+.wm-title{
+  font-family:'Bebas Neue';
+  font-size:clamp(30px,8vw,44px);
+  line-height:1.1;
+  color:#fff;
+  margin-bottom:10px;
+  text-shadow:0 0 20px rgba(255,214,0,.3);
+}
+.wm-title span{
+  background:linear-gradient(180deg,#fff,var(--oro));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.wm-sub{
+  font-size:clamp(15px,4vw,18px);
+  color:rgba(255,255,255,.7);
+  line-height:1.5;
+  margin-bottom:28px;
+  font-weight:600;
+}
+.wm-btn{
+  display:block;width:100%;border:none;cursor:pointer;
+  font-family:'Bebas Neue';font-size:clamp(20px,5.5vw,28px);
+  letter-spacing:2px;padding:22px 28px;border-radius:20px;
+  background:linear-gradient(135deg,var(--verde) 0%,var(--verde2) 50%,#00ff88 100%);
+  color:#000;
+  box-shadow:0 10px 50px rgba(0,200,83,.65),0 2px 0 rgba(255,255,255,.3) inset;
+  border:2px solid rgba(255,255,255,.25);
+  animation:wmBtnPulse 1.6s ease-in-out infinite;
+  text-transform:uppercase;
+}
+@keyframes wmBtnPulse{
+  0%,100%{box-shadow:0 10px 50px rgba(0,200,83,.65),0 2px 0 rgba(255,255,255,.3) inset}
+  50%{box-shadow:0 10px 65px rgba(0,200,83,.95),0 0 30px rgba(0,230,118,.5),0 2px 0 rgba(255,255,255,.3) inset}
+}
+.wm-btn:active{transform:scale(.95)}
+
+/* ══════════════════════════════════════════
+   EMOTICONS FLOTANTES (durante toda la app)
+══════════════════════════════════════════ */
+#floating-emojis{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  overflow:hidden;
+}
+.float-emoji{
+  position:absolute;
+  font-size:clamp(20px,5vw,32px);
+  opacity:0;
+  animation:floatUp linear infinite;
+  filter:drop-shadow(0 0 8px rgba(255,214,0,.25));
+}
+@keyframes floatUp{
+  0%{transform:translateY(110vh) translateX(0) rotate(0deg);opacity:0}
+  10%{opacity:.55}
+  88%{opacity:.5}
+  100%{transform:translateY(-15vh) translateX(var(--drift,20px)) rotate(340deg);opacity:0}
+}
+
+
+#s-home{background:transparent;min-height:100svh}
 .home-body{
   flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:28px 22px;text-align:center;
-  width:100%;max-width:480px;margin:0 auto;
-  gap:20px;
+  align-items:center;justify-content:space-evenly;
+  padding:24px 22px;text-align:center;
+  width:100%;max-width:560px;margin:0 auto;
+  gap:18px;min-height:0;
 }
 .home-title{
   font-family:'Bebas Neue';
@@ -203,29 +308,31 @@ body::before{
 /* ══════════════════════════════════════════
    SCREEN 2: REGISTRO
 ══════════════════════════════════════════ */
-#s-reg{background:transparent}
+#s-reg{background:transparent;min-height:100svh}
 .reg-body{
-  flex:1;width:100%;max-width:480px;margin:0 auto;
-  padding:24px 20px 32px;overflow-y:auto;
+  flex:1;width:100%;max-width:560px;margin:0 auto;
+  padding:28px 24px 40px;overflow-y:auto;
+  display:flex;flex-direction:column;
+  min-height:0;
 }
 .reg-title{
-  font-family:'Bebas Neue';font-size:clamp(38px,10vw,56px);
-  color:var(--oro);letter-spacing:2px;margin-bottom:6px;
-  text-shadow:0 0 20px rgba(255,214,0,.4);
+  font-family:'Bebas Neue';font-size:clamp(40px,11vw,64px);
+  color:var(--oro);letter-spacing:2px;margin-bottom:8px;
+  text-shadow:0 0 24px rgba(255,214,0,.5);
 }
-.reg-sub{font-size:14px;color:rgba(255,255,255,.55);margin-bottom:22px}
+.reg-sub{font-size:clamp(14px,3.6vw,17px);color:rgba(255,255,255,.6);margin-bottom:26px}
 
-.fg{margin-bottom:14px}
+.fg{margin-bottom:18px}
 .fg label{
-  display:block;font-size:11px;font-weight:700;
+  display:block;font-size:clamp(12px,2.8vw,14px);font-weight:700;
   letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--verde2);margin-bottom:7px;
+  color:var(--verde2);margin-bottom:8px;
 }
 .fg input{
   width:100%;background:rgba(255,255,255,.06);
   border:1.5px solid rgba(255,255,255,.12);
-  color:#fff;padding:15px 18px;border-radius:14px;
-  font-size:16px;font-family:'Inter';outline:none;
+  color:#fff;padding:18px 20px;border-radius:16px;
+  font-size:clamp(16px,4vw,19px);font-family:'Inter';outline:none;
   transition:border-color .2s,background .2s,box-shadow .2s;
   -webkit-appearance:none;
 }
@@ -241,13 +348,13 @@ body::before{
 .cbg{
   display:flex;gap:14px;align-items:flex-start;
   background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);
-  border-radius:16px;padding:16px;margin-bottom:22px;
+  border-radius:18px;padding:18px;margin-bottom:26px;
 }
 .cbg input[type=checkbox]{
-  width:22px;height:22px;flex-shrink:0;
+  width:24px;height:24px;flex-shrink:0;
   accent-color:var(--verde2);cursor:pointer;margin-top:2px;
 }
-.cbg label{font-size:13px;color:rgba(255,255,255,.65);line-height:1.55;cursor:pointer}
+.cbg label{font-size:clamp(13px,3.2vw,15px);color:rgba(255,255,255,.7);line-height:1.6;cursor:pointer}
 
 /* ══════════════════════════════════════════
    SCREEN 3: CÓDIGO
@@ -348,11 +455,13 @@ body::before{
   background:radial-gradient(ellipse at center,#1a1a2e 0%,#0d0d15 80%);
   border:2px solid rgba(255,255,255,.1);
   border-radius:28px;
-  padding:24px 16px 20px;
+  padding:28px 16px 24px;
   display:flex;flex-direction:column;align-items:center;
-  gap:18px;
+  gap:20px;
   position:relative;overflow:hidden;
   margin-bottom:14px;
+  min-height:clamp(320px,62vh,460px);
+  justify-content:center;
 }
 .dice-arena::before{
   content:'';position:absolute;inset:0;
@@ -362,24 +471,24 @@ body::before{
   pointer-events:none;
 }
 .dice-instruction{
-  font-size:clamp(16px,4.5vw,20px);font-weight:700;
+  font-size:clamp(17px,4.8vw,22px);font-weight:700;
   color:rgba(255,255,255,.85);text-align:center;
   line-height:1.4;
 }
 .dice-instruction strong{color:var(--oro)}
 
-/* Dado 3D */
+/* Dado 3D — MÁS GRANDE Y VISIBLE */
 .dice-wrap{
-  perspective:400px;
-  width:clamp(120px,35vw,160px);
-  height:clamp(120px,35vw,160px);
+  perspective:600px;
+  width:clamp(170px,48vw,230px);
+  height:clamp(170px,48vw,230px);
   cursor:pointer;
   position:relative;
 }
 .dice{
   width:100%;height:100%;
   transform-style:preserve-3d;
-  transform:rotateX(0deg) rotateY(0deg);
+  transform:rotateX(-18deg) rotateY(24deg);
   transition:transform .12s ease;
   position:relative;
 }
@@ -387,7 +496,7 @@ body::before{
   animation:diceRoll 1.2s cubic-bezier(.36,.07,.19,.97) forwards;
 }
 @keyframes diceRoll{
-  0%  {transform:rotateX(0)   rotateY(0)   rotateZ(0)}
+  0%  {transform:rotateX(-18deg) rotateY(24deg)   rotateZ(0)}
   15% {transform:rotateX(180deg) rotateY(90deg)  rotateZ(45deg)}
   30% {transform:rotateX(360deg) rotateY(180deg) rotateZ(90deg)}
   50% {transform:rotateX(540deg) rotateY(360deg) rotateZ(120deg)}
@@ -397,26 +506,62 @@ body::before{
 }
 .dice-face{
   position:absolute;inset:0;
-  background:linear-gradient(145deg,#1f1f30,#141420);
-  border:3px solid rgba(255,255,255,.15);
-  border-radius:22px;
+  background:linear-gradient(145deg,#2a2a42,#16162a);
+  border:4px solid rgba(255,214,0,.35);
+  border-radius:28px;
   display:flex;align-items:center;justify-content:center;
-  font-size:clamp(48px,14vw,80px);
+  font-size:clamp(64px,20vw,110px);
   backface-visibility:hidden;
-  box-shadow:inset 0 2px 4px rgba(255,255,255,.08),inset 0 -2px 4px rgba(0,0,0,.4);
+  box-shadow:inset 0 3px 6px rgba(255,255,255,.12),inset 0 -3px 6px rgba(0,0,0,.5),0 0 30px rgba(255,214,0,.08);
 }
-.face-front  {transform:translateZ(calc(clamp(60px,17.5vw,80px)))}
-.face-back   {transform:rotateY(180deg) translateZ(calc(clamp(60px,17.5vw,80px)))}
-.face-right  {transform:rotateY(90deg)  translateZ(calc(clamp(60px,17.5vw,80px)))}
-.face-left   {transform:rotateY(-90deg) translateZ(calc(clamp(60px,17.5vw,80px)))}
-.face-top    {transform:rotateX(90deg)  translateZ(calc(clamp(60px,17.5vw,80px)))}
-.face-bottom {transform:rotateX(-90deg) translateZ(calc(clamp(60px,17.5vw,80px)))}
+.face-front  {transform:translateZ(calc(clamp(85px,24vw,115px)))}
+.face-back   {transform:rotateY(180deg) translateZ(calc(clamp(85px,24vw,115px)))}
+.face-right  {transform:rotateY(90deg)  translateZ(calc(clamp(85px,24vw,115px)))}
+.face-left   {transform:rotateY(-90deg) translateZ(calc(clamp(85px,24vw,115px)))}
+.face-top    {transform:rotateX(90deg)  translateZ(calc(clamp(85px,24vw,115px)))}
+.face-bottom {transform:rotateX(-90deg) translateZ(calc(clamp(85px,24vw,115px)))}
 
 .dice-shadow{
-  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
-  width:80%;height:20px;
-  background:radial-gradient(ellipse,rgba(0,0,0,.6),transparent 70%);
-  filter:blur(6px);
+  position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);
+  width:85%;height:24px;
+  background:radial-gradient(ellipse,rgba(0,0,0,.65),transparent 70%);
+  filter:blur(7px);
+}
+
+/* Dedo animado indicando dónde tocar */
+.tap-finger{
+  position:absolute;
+  font-size:clamp(46px,13vw,64px);
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.6));
+  pointer-events:none;
+  animation:tapFinger 1.4s ease-in-out infinite;
+  z-index:5;
+  right:8%;
+  bottom:6%;
+  display:none;
+}
+@keyframes tapFinger{
+  0%,100%{transform:translate(0,0) scale(1);opacity:.95}
+  35%{transform:translate(-6px,8px) scale(.92);opacity:1}
+  50%{transform:translate(-6px,8px) scale(.85);opacity:1}
+  65%{transform:translate(0,0) scale(1);opacity:.95}
+}
+.tap-ripple{
+  position:absolute;
+  width:50px;height:50px;
+  border:3px solid rgba(255,214,0,.6);
+  border-radius:50%;
+  pointer-events:none;
+  right:14%;
+  bottom:11%;
+  animation:tapRipple 1.4s ease-out infinite;
+  z-index:4;
+  display:none;
+}
+@keyframes tapRipple{
+  0%{transform:scale(.3);opacity:0}
+  30%{opacity:.8}
+  100%{transform:scale(1.8);opacity:0}
 }
 
 /* Timer ring */
@@ -637,6 +782,27 @@ body::before{
   opacity:0;transition:opacity .5s;
 }
 .winner-glow.on{opacity:1}
+
+/* ══════════════════════════════════════════
+   FLOATING EMOJIS (decorativos, fondo)
+══════════════════════════════════════════ */
+#floating-emojis{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  overflow:hidden;
+}
+.float-emoji{
+  position:absolute;
+  font-size:clamp(22px,6vw,36px);
+  opacity:0;
+  animation:floatUp linear forwards;
+  filter:drop-shadow(0 0 8px rgba(255,214,0,.4));
+}
+@keyframes floatUp{
+  0%{opacity:0;transform:translateY(0) rotate(0deg) scale(.8)}
+  10%{opacity:.85}
+  90%{opacity:.7}
+  100%{opacity:0;transform:translateY(-110vh) rotate(360deg) scale(1.1)}
+}
 </style>
 </head>
 <body>
@@ -644,9 +810,23 @@ body::before{
 <canvas id="stars-canvas"></canvas>
 <canvas id="confetti-canvas"></canvas>
 <div class="winner-glow" id="winner-glow"></div>
+<div id="floating-emojis"></div>
+
+<!-- ══ MODAL DE BIENVENIDA ══ -->
+<div id="welcome-modal">
+  <div class="wm-floaters" id="wm-floaters"></div>
+  <div class="wm-card">
+    <div class="wm-icon">🎲</div>
+    <h2 class="wm-title">¿ESTÁS LISTO(A)<br>PARA <span>PARTICIPAR?</span></h2>
+    <p class="wm-sub">¡Prepárate para probar suerte y ganar increíbles premios esta noche!</p>
+    <button class="wm-btn" onclick="closeWelcomeModal()">
+      🔥 &nbsp; ¡ESTOY LISTO! &nbsp; 🔥
+    </button>
+  </div>
+</div>
 
 <!-- ══ SCREEN 1: HOME ══ -->
-<div id="s-home" class="scr on">
+<div id="s-home" class="scr">
   <div class="top-bar">
     <div>
       <div class="match">MÉXICO VS COREA</div>
@@ -714,8 +894,9 @@ body::before{
       <input type="checkbox" id="fok" checked>
       <label for="fok">Acepto recibir información, promociones e invitaciones a futuros eventos a través de mis datos de contacto.</label>
     </div>
+    <div style="flex:1;min-height:8px"></div>
     <button class="btn btn-hero" id="btn-reg" onclick="doReg()">Continuar →</button>
-    <div style="height:10px"></div>
+    <div style="height:12px"></div>
     <button class="btn btn-ghost" onclick="show('s-home');playClick()">← Volver</button>
   </div>
 </div>
@@ -790,6 +971,8 @@ body::before{
           <div class="dice-face face-bottom">💫</div>
         </div>
         <div class="dice-shadow"></div>
+        <div class="tap-ripple" id="tap-ripple"></div>
+        <div class="tap-finger" id="tap-finger">👆</div>
       </div>
 
       <!-- Result emoji (shown after roll) -->
@@ -857,6 +1040,19 @@ body::before{
 <button id="music-toggle" onclick="toggleMusic()" style="position:fixed;bottom:18px;left:18px;z-index:500;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.6);width:42px;height:42px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(12px)">🔊</button>
 <div id="toast"></div>
 
+<!--
+  ══════════════════════════════════════════════════════════
+  MÚSICA DE FONDO — archivo de audio propio
+  ══════════════════════════════════════════════════════════
+  Sube tu archivo de audio (mp3/ogg) a la misma carpeta del
+  proyecto y reemplaza "musica-fondo.mp3" por el nombre real
+  de tu archivo. Se reproduce en loop automáticamente al
+  cerrar el modal de bienvenida.
+-->
+<audio id="bg-music" loop preload="auto" style="display:none">
+  <source src="musica-fondo.mp3" type="audio/mpeg">
+</audio>
+
 <script>
 'use strict';
 // SUPABASE_URL, SUPABASE_ANON y _sb vienen de config.js
@@ -899,27 +1095,85 @@ function playCrowd(){
 }
 
 // ══════════════════════════════════════════
-//  MÚSICA DE FONDO MUNDIALISTA (loop sintético)
+//  MÚSICA DE FONDO — archivo de audio real
 // ══════════════════════════════════════════
-// Bajo + percusión + arpegio brillante en escala menor enérgica,
-// estilo "himno de estadio" — todo generado, sin archivos externos.
+// Usa el <audio id="bg-music"> con tu archivo subido.
+// Si el archivo no existe o falla, cae automáticamente
+// al generador sintético como respaldo (para no dejar
+// la experiencia en silencio total).
 let musicPlaying = false;
-let musicNodes = [];
-let musicLoopTimer = null;
 let musicMuted = false;
+let usingSyntheticFallback = false;
 
+const bgMusicEl = document.getElementById('bg-music');
+if(bgMusicEl){
+  bgMusicEl.volume = 0.55;
+  bgMusicEl.addEventListener('error', ()=>{ usingSyntheticFallback = true; });
+}
+
+function startMusic(){
+  if(musicPlaying || musicMuted) return;
+  musicPlaying = true;
+  resumeAudio();
+
+  if(bgMusicEl && !usingSyntheticFallback){
+    bgMusicEl.currentTime = bgMusicEl.currentTime || 0;
+    const p = bgMusicEl.play();
+    if(p && p.catch){
+      p.catch(()=>{ usingSyntheticFallback = true; startSyntheticMusic(); });
+    }
+  } else {
+    startSyntheticMusic();
+  }
+}
+
+function stopMusic(){
+  musicPlaying = false;
+  if(bgMusicEl) bgMusicEl.pause();
+  stopSyntheticMusic();
+}
+
+function duckMusic(durationMs=2200){
+  // Bajar volumen momentáneamente (para efectos/fanfarrias)
+  if(bgMusicEl && !usingSyntheticFallback){
+    const original = bgMusicEl.volume;
+    bgMusicEl.volume = 0.12;
+    setTimeout(()=>{ bgMusicEl.volume = original; }, durationMs);
+  } else {
+    const wasMuted = musicMuted;
+    musicMuted = true;
+    setTimeout(()=>{ musicMuted = wasMuted; }, durationMs);
+  }
+}
+
+function toggleMusic(){
+  musicMuted = !musicMuted;
+  const btn = document.getElementById('music-toggle');
+  if(btn) btn.textContent = musicMuted ? '🔇' : '🔊';
+  if(musicMuted){ stopMusic(); musicPlaying = false; }
+  else { musicPlaying = false; startMusic(); }
+  toast(musicMuted ? '🔇 Música silenciada' : '🔊 Música activada');
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) stopMusic();
+  else if(!musicMuted) startMusic();
+});
+
+// ══════════════════════════════════════════
+//  RESPALDO SINTÉTICO (si no hay archivo de audio)
+// ══════════════════════════════════════════
+let musicLoopTimer = null;
 const MUSIC_BPM = 128;
-const BEAT = 60 / MUSIC_BPM;           // segundos por beat
-const BAR  = BEAT * 4;                  // segundos por compás (4/4)
-
-// Progresión enérgica en Mi menor (Em - C - G - D) — sonido "victoria/estadio"
+const BEAT = 60 / MUSIC_BPM;
+const BAR  = BEAT * 4;
 const CHORDS = [
-  [164.81, 196.00, 246.94],  // Em  (E3 G3 B3)
-  [130.81, 164.81, 196.00],  // C   (C3 E3 G3)
-  [196.00, 246.94, 293.66],  // G   (G3 B3 D4)
-  [146.83, 185.00, 220.00],  // D   (D3 F#3 A3)
+  [164.81, 196.00, 246.94],
+  [130.81, 164.81, 196.00],
+  [196.00, 246.94, 293.66],
+  [146.83, 185.00, 220.00],
 ];
-const BASS_NOTES = [82.41, 65.41, 98.00, 73.42]; // E2, C2, G2, D2
+const BASS_NOTES = [82.41, 65.41, 98.00, 73.42];
 
 function musicKick(t){
   const o=AC.createOscillator(), g=AC.createGain();
@@ -953,7 +1207,7 @@ function musicBass(t,freq){
 function musicArp(t,freqs){
   freqs.forEach((f,i)=>{
     const o=AC.createOscillator(), g=AC.createGain();
-    o.type='triangle'; o.frequency.value=f*2; // octava arriba, brillante
+    o.type='triangle'; o.frequency.value=f*2;
     const start=t+i*(BEAT/2);
     g.gain.setValueAtTime(0,start);
     g.gain.linearRampToValueAtTime(.09,start+.02);
@@ -962,59 +1216,29 @@ function musicArp(t,freqs){
     o.start(start); o.stop(start+BEAT*.5);
   });
 }
-
 function scheduleMusicBar(barIndex, startTime){
   if(musicMuted) return;
   const chordIdx = barIndex % CHORDS.length;
-  const chord = CHORDS[chordIdx];
-  const bassNote = BASS_NOTES[chordIdx];
-
-  // Kick on beats 1 and 3
   musicKick(startTime);
   musicKick(startTime + BEAT*2);
-  // Hi-hat on every 8th note
   for(let i=0;i<8;i++) musicHat(startTime + i*(BEAT/2), i%2===0?.1:.06);
-  // Bass note sustained
-  musicBass(startTime, bassNote);
-  musicBass(startTime+BEAT*2, bassNote);
-  // Bright arpeggio on top
-  musicArp(startTime, chord);
+  musicBass(startTime, BASS_NOTES[chordIdx]);
+  musicBass(startTime+BEAT*2, BASS_NOTES[chordIdx]);
+  musicArp(startTime, CHORDS[chordIdx]);
 }
-
-function startMusic(){
-  if(musicPlaying) return;
-  musicPlaying = true;
-  resumeAudio();
+function startSyntheticMusic(){
   let bar = 0;
   const lookAhead = () => {
     if(!musicPlaying) return;
-    const t = AC.currentTime + 0.05;
-    scheduleMusicBar(bar, t);
+    scheduleMusicBar(bar, AC.currentTime + 0.05);
     bar++;
   };
   lookAhead();
   musicLoopTimer = setInterval(lookAhead, BAR*1000);
 }
-
-function stopMusic(){
-  musicPlaying = false;
+function stopSyntheticMusic(){
   clearInterval(musicLoopTimer);
 }
-
-function toggleMusic(){
-  musicMuted = !musicMuted;
-  const btn = document.getElementById('music-toggle');
-  if(btn) btn.textContent = musicMuted ? '🔇' : '🔊';
-  toast(musicMuted ? '🔇 Música silenciada' : '🔊 Música activada');
-}
-
-document.addEventListener('touchstart', ()=>{ if(!musicPlaying) startMusic(); }, {once:true});
-document.addEventListener('click',      ()=>{ if(!musicPlaying) startMusic(); }, {once:true});
-
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden) stopMusic();
-  else if(!musicMuted) startMusic();
-});
 
 // ══════════════════════════════════════════
 //  PARTICLES (stars bg)
@@ -1072,6 +1296,33 @@ function doConfetti(){
   setTimeout(()=>document.getElementById('winner-glow').classList.remove('on'),3000);
 }
 
+// Confeti ambiental ligero — para momentos festivos que no son "victoria"
+// (ej. al entrar a la app), más sutil y sin el glow dorado de ganador.
+function doConfettiLight(){
+  const cv=document.getElementById('confetti-canvas');
+  cv.width=innerWidth; cv.height=innerHeight;
+  const ctx=cv.getContext('2d');
+  const cols=['#ffd600','#00c853','#fff','#00e676','#ff6b35'];
+  const bits=Array.from({length:70},()=>({
+    x:Math.random()*cv.width, y:-20-Math.random()*150,
+    w:6+Math.random()*7, h:3+Math.random()*4,
+    c:cols[~~(Math.random()*cols.length)],
+    rot:Math.random()*Math.PI*2,
+    vx:-2+Math.random()*4, vy:2+Math.random()*4,
+    vr:-.12+Math.random()*.24,
+  }));
+  let f=0;
+  (function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    bits.forEach(b=>{ b.x+=b.vx; b.y+=b.vy; b.rot+=b.vr;
+      ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot);
+      ctx.fillStyle=b.c; ctx.fillRect(-b.w/2,-b.h/2,b.w,b.h);
+      ctx.restore(); });
+    if(++f<180) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
 // ══════════════════════════════════════════
 //  SCREEN MANAGER
 // ══════════════════════════════════════════
@@ -1101,14 +1352,96 @@ const ST={ player:null };
 window.addEventListener('DOMContentLoaded', async ()=>{
   const saved = LS.get('mxk_v3');
   if(saved?.codigo){
+    // Ya hay sesión: saltar el modal de bienvenida e ir directo a su estado
+    document.getElementById('welcome-modal').classList.add('hide');
+    document.getElementById('s-home').classList.remove('on');
     const {data} = await _sb.from('participantes').select('*').eq('codigo',saved.codigo).single();
     if(data){
       ST.player=data;
       if(data.jugó){ showResult(data); show('s-res'); }
       else{ updCode(); startAutoCountdown(); show('s-code'); }
-    } else { LS.del('mxk_v3'); }
+    } else {
+      LS.del('mxk_v3');
+      show('s-home');
+    }
+    // El modal de bienvenida no se mostró, así que arrancamos la música
+    // en el primer toque/clic del usuario (requerido por políticas de autoplay)
+    const startOnFirstTouch = ()=>{ resumeAudio(); startMusic(); };
+    document.addEventListener('touchstart', startOnFirstTouch, {once:true});
+    document.addEventListener('click',      startOnFirstTouch, {once:true});
+  } else {
+    // No hay sesión: mostrar modal de bienvenida con sus emojis flotantes
+    startWmFloaters();
   }
+  startFloatingEmojis();
 });
+
+// ══════════════════════════════════════════
+//  MODAL DE BIENVENIDA — activa audio y música
+// ══════════════════════════════════════════
+function closeWelcomeModal(){
+  resumeAudio();
+  document.getElementById('welcome-modal').classList.add('hide');
+  stopWmFloaters();
+  show('s-home');
+  startMusic();
+  playClick();
+  doConfettiLight();
+}
+
+// ══════════════════════════════════════════
+//  EMOJIS FLOTANTES DENTRO DEL MODAL DE BIENVENIDA
+// ══════════════════════════════════════════
+const WM_FLOAT_LIST=['⚽','🏆','🎉','🔥','🌟','🇲🇽','🎲','⭐'];
+let wmFloaterTimer=null;
+function spawnWmFloater(){
+  const cont=document.getElementById('wm-floaters');
+  if(!cont) return;
+  const el=document.createElement('div');
+  el.className='wm-float-emoji';
+  el.textContent=WM_FLOAT_LIST[~~(Math.random()*WM_FLOAT_LIST.length)];
+  el.style.left=(Math.random()*92+2)+'vw';
+  const dur=6+Math.random()*5;
+  el.style.animationDuration=dur+'s';
+  cont.appendChild(el);
+  setTimeout(()=>el.remove(), dur*1000+200);
+}
+function startWmFloaters(){
+  if(wmFloaterTimer) return;
+  spawnWmFloater();
+  wmFloaterTimer=setInterval(spawnWmFloater, 700);
+}
+function stopWmFloaters(){
+  clearInterval(wmFloaterTimer);
+  wmFloaterTimer=null;
+  const cont=document.getElementById('wm-floaters');
+  if(cont) cont.innerHTML='';
+}
+
+// ══════════════════════════════════════════
+//  EMOJIS FLOTANTES DE FONDO
+// ══════════════════════════════════════════
+const FLOAT_EMOJI_LIST=['⚽','🏆','🎉','🔥','🌟','🇲🇽','⭐','🎊'];
+function spawnFloatingEmoji(){
+  const cont=document.getElementById('floating-emojis');
+  if(!cont) return;
+  const el=document.createElement('div');
+  el.className='float-emoji';
+  el.textContent=FLOAT_EMOJI_LIST[~~(Math.random()*FLOAT_EMOJI_LIST.length)];
+  const startX=Math.random()*94+2; // % desde la izquierda
+  const dur=8+Math.random()*7;     // 8-15s
+  el.style.left=startX+'vw';
+  el.style.bottom='-40px';
+  el.style.animationDuration=dur+'s';
+  cont.appendChild(el);
+  setTimeout(()=>el.remove(), dur*1000+200);
+}
+let floatingEmojiTimer=null;
+function startFloatingEmojis(){
+  if(floatingEmojiTimer) return;
+  spawnFloatingEmoji();
+  floatingEmojiTimer=setInterval(spawnFloatingEmoji, 1400);
+}
 
 // ══════════════════════════════════════════
 //  TELÉFONO — forzar solo dígitos, máx 10
@@ -1246,6 +1579,9 @@ function startGameCountdown(){
       document.getElementById('gmsg').textContent='👆 ¡Es tu momento!';
       // Pulsing dice hint
       document.getElementById('dice-wrap').style.animation='resultpop .5s ease';
+      // Mostrar dedo animado indicando dónde tocar
+      document.getElementById('tap-finger').style.display='block';
+      document.getElementById('tap-ripple').style.display='block';
     }
   },1000);
 }
@@ -1257,10 +1593,11 @@ async function rollDice(){
 
   document.getElementById('dice-inst').textContent='🎲 ¡Lanzando!';
   document.getElementById('gmsg').textContent='';
+  document.getElementById('tap-finger').style.display='none';
+  document.getElementById('tap-ripple').style.display='none';
 
   // Bajar música momentáneamente para que se escuchen los efectos
-  const wasMuted = musicMuted;
-  musicMuted = true;
+  duckMusic(1500);
 
   // Animate dice
   const dice=document.getElementById('the-dice');
@@ -1270,7 +1607,6 @@ async function rollDice(){
   await sleep(1300);
 
   dice.classList.remove('rolling');
-  musicMuted = wasMuted;
 
   // Pick random face for display
   const face=DICE_FACES[~~(Math.random()*DICE_FACES.length)];
@@ -1319,27 +1655,33 @@ function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 // ══════════════════════════════════════════
 //  TRIVIA — México en mundiales
 // ══════════════════════════════════════════
-const TRIVIA_BANK = [
-  { q:'¿En qué año debutó México en un Mundial de Fútbol?',
-    opts:['1924','1930','1934','1950'], correct:1 },
-  { q:'¿Cuántas veces ha llegado México al quinto partido en un Mundial?',
-    opts:['3','4','5','7'], correct:3 },
-  { q:'¿Contra qué selección anotó Hugo Sánchez en el Mundial de España 1982?',
-    opts:['Brasil','Yugoslavia','Checoslovaquia','Austria'], correct:0 },
-  { q:'¿Qué mundial organizó México por primera vez en 1970?',
-    opts:['Copa FIFA','El primero en América Latina','La Copa del Mundo','El campeonato global'], correct:2 },
-  { q:'¿Quién fue el portero mítico de México en México 86?',
-    opts:['Oswaldo Sánchez','Adrián Martínez','Pablo Larios','Jorge Campos'], correct:2 },
-  { q:'¿En qué mundial México alcanzó los cuartos de final en 1986?',
-    opts:['España 1982','México 1986','Italia 1990','EE.UU. 1994'], correct:1 },
-  { q:'¿Quién anotó el penalti ganador de México vs Bulgaria en México 86?',
-    opts:['Luis Flores','Manuel Negrete','Javier Aguirre','Tomás Boy'], correct:2 },
-  { q:'¿Cuántos mundiales ha organizado México hasta 2026?',
-    opts:['1','2','3','0'], correct:2 },
-  { q:'¿Contra qué país perdió México en octavos del Mundial 2018?',
-    opts:['Alemania','Argentina','Brasil','Francia'], correct:2 },
-  { q:'¿Cuál es el apodo de la selección mexicana de fútbol?',
-    opts:['Los Aztecas','El Tri','Los Verdes','La Raza'], correct:1 },
+const TRIVIA_FACILES = [
+  { q:'¿Cómo se le conoce popularmente a la Selección Mexicana de fútbol?',
+    opts:['La Máquina','El Tri','Los Azules','La Roja'], correct:1 },
+  { q:'¿Por qué a la Selección Mexicana le dicen "El Tri"?',
+    opts:['Porque ha ganado tres Mundiales','Por los tres colores de la bandera de México','Porque siempre juega con tres delanteros','Porque tiene tres capitanes'], correct:1 },
+  { q:'¿Cuál es el color más representativo del uniforme tradicional de México en los Mundiales?',
+    opts:['Azul','Verde','Morado','Naranja'], correct:1 },
+  { q:'Cuando juega México en un Mundial, ¿qué quiere decir que avanzó de grupo?',
+    opts:['Que ya fue campeón','Que pasó a la siguiente ronda','Que cambió de estadio','Que descansó un partido'], correct:1 },
+];
+
+const TRIVIA_MEDIAS = [
+  { q:'¿Cuál ha sido el mejor resultado de México en la historia de los Mundiales?',
+    opts:['Ser campeón','Llegar a semifinales','Llegar a cuartos de final','Ganar todos sus partidos de grupo'], correct:2 },
+  { q:'¿Contra qué selección ganó México un partido muy recordado para avanzar en una de sus mejores actuaciones mundialistas?',
+    opts:['Francia','Brasil','Bulgaria','Inglaterra'], correct:2 },
+  { q:'¿Qué nombre le da mucha gente en México al partido en el que la selección podría meterse entre las 8 mejores del Mundial?',
+    opts:['El partido dorado','El quinto partido','La gran final','El juego perfecto'], correct:1 },
+  { q:'¿En cuáles rondas ha quedado muchas veces México en la era moderna de los Mundiales?',
+    opts:['Final y semifinal','Octavos de final','Solo en repechaje','Siempre en cuartos'], correct:1 },
+];
+
+const TRIVIA_DIFICILES = [
+  { q:'¿Qué jugador mexicano hizo un gol muy famoso de media tijera en un Mundial?',
+    opts:['Hugo Sánchez','Cuauhtémoc Blanco','Manuel Negrete','Rafa Márquez'], correct:2 },
+  { q:'¿Qué tienen en común las dos mejores actuaciones de México en los Mundiales?',
+    opts:['Fueron contra el mismo rival','México anotó 5 goles en cada una','Se lograron cuando México fue anfitrión','Se definieron en tiempo extra'], correct:2 },
 ];
 
 let triviaTimeout=null;
@@ -1354,20 +1696,26 @@ function startTrivia(playerWon){
 }
 
 function pickQuestion(){
+  // Intento 1 = fácil, intento 2 = media, intento 3 = difícil
+  const bank = triviaAttempt===1 ? TRIVIA_FACILES
+             : triviaAttempt===2 ? TRIVIA_MEDIAS
+             : TRIVIA_DIFICILES;
+
   let idx;
   let tries=0;
   do{
-    idx=~~(Math.random()*TRIVIA_BANK.length);
+    idx=~~(Math.random()*bank.length);
     tries++;
-  } while(usedQuestionIdx.includes(idx) && tries<20);
-  usedQuestionIdx.push(idx);
-  return TRIVIA_BANK[idx];
+  } while(usedQuestionIdx.includes(`${triviaAttempt}-${idx}`) && tries<20);
+  usedQuestionIdx.push(`${triviaAttempt}-${idx}`);
+  return bank[idx];
 }
 
 function askTriviaQuestion(){
   const q=pickQuestion();
+  const dificultad = triviaAttempt===1 ? '🟢 Fácil' : triviaAttempt===2 ? '🟡 Media' : '🔴 Difícil';
 
-  document.getElementById('tv-attempts').textContent=`Intento ${triviaAttempt} de 3`;
+  document.getElementById('tv-attempts').textContent=`Intento ${triviaAttempt} de 3 — ${dificultad}`;
   document.getElementById('tv-qnum').textContent=`Pregunta ${triviaAttempt}`;
   document.getElementById('tv-q').textContent=q.q;
   document.getElementById('tv-result').style.display='none';
