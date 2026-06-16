@@ -120,7 +120,12 @@ body::before{
   80%{transform:scale(1.06) translateY(-5px)}
   to{transform:scale(1) translateY(0);opacity:1}
 }
-.spot-emoji{font-size:clamp(60px,10vw,100px);filter:drop-shadow(0 0 30px rgba(255,214,0,.8))}
+.spot-emoji{
+  font-size:clamp(60px,10vw,100px);
+  line-height:1.3;
+  display:block;
+  filter:drop-shadow(0 0 30px rgba(255,214,0,.8));
+}
 .spot-label{
   font-size:clamp(12px,1.5vw,15px);letter-spacing:3px;text-transform:uppercase;
   color:var(--oro);font-weight:700;opacity:.8;
@@ -145,6 +150,26 @@ body::before{
   box-shadow:0 0 20px rgba(255,214,0,.5);text-transform:uppercase;
 }
 .spot-time{font-size:clamp(10px,1.2vw,13px);color:rgba(255,255,255,.35);margin-top:2px}
+
+/* ── RESPONSIVE: pantallas angostas (móvil) ── */
+@media (max-width: 760px){
+  html,body{overflow-y:auto;height:auto}
+  .root{height:auto;max-height:none;overflow:visible}
+  .main{
+    grid-template-columns:1fr;
+    overflow:visible;
+  }
+  .spotlight{
+    overflow:visible;
+    border-right:none;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    padding:28px 20px;
+    min-height:280px;
+  }
+  .winners-side{overflow:visible;max-height:none}
+  .wt-table-wrap{overflow-y:visible;max-height:none}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+}
 
 /* ── WINNERS TABLE (derecha) ── */
 .winners-side{
