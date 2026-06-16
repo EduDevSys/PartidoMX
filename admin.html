@@ -90,6 +90,42 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 }
 .btn-reset-all:hover{background:rgba(255,23,68,.18);border-color:var(--rojo)}
 
+/* ── Control de probabilidad de ganar ── */
+.prob-card{
+  background:var(--g2);border:1px solid var(--borde);
+  border-radius:16px;padding:18px 20px;margin-bottom:22px;
+}
+.prob-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.prob-title{font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;color:#fff}
+.prob-current{
+  font-family:'Bebas Neue';font-size:30px;color:var(--oro);
+  text-shadow:0 0 14px rgba(255,214,0,.4);
+}
+.prob-slider-row{display:flex;align-items:center;gap:14px}
+.prob-slider-row input[type=range]{
+  flex:1;height:8px;border-radius:5px;
+  background:rgba(255,255,255,.1);outline:none;
+  -webkit-appearance:none;cursor:pointer;
+}
+.prob-slider-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,var(--oro2),var(--oro));
+  border:2px solid #fff;cursor:pointer;box-shadow:0 0 10px rgba(255,214,0,.5);
+}
+.prob-slider-row input[type=range]::-moz-range-thumb{
+  width:22px;height:22px;border-radius:50%;border:2px solid #fff;
+  background:linear-gradient(135deg,var(--oro2),var(--oro));cursor:pointer;
+}
+.prob-presets{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.prob-preset-btn{
+  padding:6px 14px;border-radius:50px;font-size:12px;font-weight:700;
+  background:rgba(255,255,255,.06);border:1px solid var(--borde);
+  color:rgba(255,255,255,.6);cursor:pointer;transition:all .15s;
+}
+.prob-preset-btn:hover{background:rgba(255,214,0,.1);border-color:rgba(255,214,0,.3);color:var(--oro)}
+.prob-preset-btn.active{background:rgba(255,214,0,.15);border-color:var(--oro);color:var(--oro)}
+.prob-hint{font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.5}
+
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
@@ -313,6 +349,25 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
     <div class="panel on" id="p-dash">
       <div class="panel-title">RESUMEN DEL EVENTO</div>
       <div class="stat-grid" id="dash-stats"></div>
+
+      <div class="prob-card">
+        <div class="prob-head">
+          <div class="prob-title">🎯 Probabilidad de ganar</div>
+          <div class="prob-current" id="prob-current">20%</div>
+        </div>
+        <div class="prob-slider-row">
+          <input type="range" id="prob-slider" min="0" max="100" step="5" value="20" oninput="onProbSlide(this.value)">
+        </div>
+        <div class="prob-presets">
+          <button class="prob-preset-btn" onclick="setProbPreset(10)">10%</button>
+          <button class="prob-preset-btn" onclick="setProbPreset(20)">20%</button>
+          <button class="prob-preset-btn" onclick="setProbPreset(30)">30%</button>
+          <button class="prob-preset-btn" onclick="setProbPreset(40)">40%</button>
+          <button class="prob-preset-btn" onclick="setProbPreset(50)">50%</button>
+        </div>
+        <div class="prob-hint">Controla qué porcentaje de jugadores gana al lanzar la moneda, sin importar el inventario disponible. El cambio aplica de inmediato a la siguiente persona que juegue.</div>
+      </div>
+
       <div class="panel-title" style="font-size:18px;margin-top:8px">Inventario por tipo</div>
       <div id="dash-inv-bars"></div>
       <div class="panel-title" style="font-size:18px;margin-top:16px">Últimos ganadores</div>
@@ -486,6 +541,54 @@ async function togglePause(){
   toast(next ? '⏸ Dinámica pausada — nadie podrá ganar hasta reanudar' : '▶ Dinámica reanudada');
 }
 
+// ══ PROBABILIDAD DE GANAR ══
+let probabilidadActual = 0.20;
+let probSaveTimer = null;
+
+async function loadProbState(){
+  const {data} = await _sb.from('config_evento').select('probabilidad_ganar').eq('id',1).single();
+  probabilidadActual = (data?.probabilidad_ganar ?? 0.20);
+  renderProbUI();
+}
+
+function renderProbUI(){
+  const pct = Math.round(probabilidadActual * 100);
+  document.getElementById('prob-current').textContent = pct + '%';
+  document.getElementById('prob-slider').value = pct;
+  document.querySelectorAll('.prob-preset-btn').forEach(btn=>{
+    const val = parseInt(btn.textContent);
+    btn.classList.toggle('active', val === pct);
+  });
+}
+
+function onProbSlide(value){
+  const pct = parseInt(value);
+  document.getElementById('prob-current').textContent = pct + '%';
+  document.querySelectorAll('.prob-preset-btn').forEach(btn=>{
+    btn.classList.toggle('active', parseInt(btn.textContent) === pct);
+  });
+  // Debounce: espera a que el usuario suelte el slider antes de guardar
+  clearTimeout(probSaveTimer);
+  probSaveTimer = setTimeout(()=> saveProbabilidad(pct), 400);
+}
+
+function setProbPreset(pct){
+  document.getElementById('prob-slider').value = pct;
+  document.getElementById('prob-current').textContent = pct + '%';
+  document.querySelectorAll('.prob-preset-btn').forEach(btn=>{
+    btn.classList.toggle('active', parseInt(btn.textContent) === pct);
+  });
+  saveProbabilidad(pct);
+}
+
+async function saveProbabilidad(pct){
+  const fraccion = pct / 100;
+  const {error} = await _sb.rpc('set_probabilidad',{p_probabilidad:fraccion});
+  if(error){ toast('❌ Error al actualizar la probabilidad'); return; }
+  probabilidadActual = fraccion;
+  toast(`🎯 Probabilidad de ganar ajustada a ${pct}%`);
+}
+
 // ══ REINICIAR DINÁMICA (borrado total, irreversible) ══
 function openResetModal(){
   document.getElementById('reset-confirm-input').value='';
@@ -572,7 +675,7 @@ async function executeReset(){
 
 // ══ INIT ══
 async function initApp(){
-  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState()]);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadProbState()]);
   subscribeRT();
 }
 
@@ -812,6 +915,10 @@ function subscribeRT(){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento'},(pl)=>{
       dinamicaPausada = pl.new.pausado === true;
       renderPauseUI();
+      if(pl.new.probabilidad_ganar != null){
+        probabilidadActual = pl.new.probabilidad_ganar;
+        renderProbUI();
+      }
     })
     .subscribe();
 }
