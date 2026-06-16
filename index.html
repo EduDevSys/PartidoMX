@@ -886,8 +886,8 @@ body::before{
       <div class="fe" id="ee"></div>
     </div>
     <div class="fg">
-      <label>Dirección</label>
-      <input type="text" id="fd" placeholder="Calle, número, colonia, ciudad" maxlength="120">
+      <label>Colonia</label>
+      <input type="text" id="fd" placeholder="Ej: Centro, Las Granjas, San Felipe…" maxlength="120">
       <div class="fe" id="ed"></div>
     </div>
     <div class="cbg">
@@ -1473,7 +1473,7 @@ async function doReg(){
   const ok=document.getElementById('fok').checked;
   let valid=true;
   [['fn','en','Ingresa tu nombre'],['ft','et','Ingresa tu teléfono'],
-   ['fe2','ee','Ingresa tu correo'],['fd','ed','Ingresa tu dirección']]
+   ['fe2','ee','Ingresa tu correo'],['fd','ed','Ingresa tu colonia']]
   .forEach(([ii,ei,msg])=>{
     const inp=document.getElementById(ii), er=document.getElementById(ei);
     if(!inp.value.trim()){ er.textContent=msg; inp.classList.add('er'); valid=false; }
@@ -1510,7 +1510,7 @@ async function doReg(){
       if(!dup?.length) break; code=genCode();
     }
     const {data:nuevo,error}=await _sb.from('participantes')
-      .insert({codigo:code,nombre:nom,telefono:tel,correo:ema,direccion:dir,acepta_contacto:ok})
+      .insert({codigo:code,nombre:nom,telefono:tel,correo:ema,colonia:dir,acepta_contacto:ok})
       .select().single();
     if(error) throw error;
     ST.player=nuevo; LS.set('mxk_v3',{codigo:nuevo.codigo});

@@ -673,7 +673,7 @@ function renderParts(){
     const prize=p.premio_asignado?`<br>🎁 <strong>${esc(p.premio_asignado)}</strong>`:'' ;
     return `<div class="pc ${p.resultado==='ganador'?'win':''} ${p.premio_entregado?'dlv':''}" id="pc-${p.id}">
       <div class="pc-head"><div class="pc-name">${esc(p.nombre)}</div><div class="pc-code">${p.codigo}</div></div>
-      <div class="pc-info">📞 ${esc(p.telefono)} · 📧 ${esc(p.correo)}<br>🏠 ${esc(p.direccion)}<br>🗓 ${dr}${p.fecha_entrega?`<br>📦 Entrega: ${dd}`:''}${prize}</div>
+      <div class="pc-info">📞 ${esc(p.telefono)} · 📧 ${esc(p.correo)}<br>🏠 ${esc(p.colonia)}<br>🗓 ${dr}${p.fecha_entrega?`<br>📦 Entrega: ${dd}`:''}${prize}</div>
       <div class="pc-badges">${badge}</div>
       ${btn}
     </div>`;
@@ -826,7 +826,7 @@ async function exportExcel(){
   ]);
   const pData=(parts||[]).map(p=>({
     'Nombre':p.nombre,'Teléfono':p.telefono,'Correo':p.correo,
-    'Dirección':p.direccion,'Acepta contacto':p.acepta_contacto?'Sí':'No',
+    'Colonia':p.colonia,'Acepta contacto':p.acepta_contacto?'Sí':'No',
     'Código':p.codigo,
     'Resultado':p.resultado==='ganador'?'Ganador':p.resultado==='participante'?'Participante':'Sin jugar',
     'Premio asignado':p.premio_asignado||'—',
