@@ -479,85 +479,47 @@ body::before{
 
 /* ── MONEDA (volado) ── */
 .coin-wrap{
-  perspective:600px;
   width:clamp(170px,48vw,230px);
   height:clamp(170px,48vw,230px);
-  cursor:pointer;
   position:relative;
 }
 .coin{
   width:100%;height:100%;
-  transform-style:preserve-3d;
-  transform:rotateY(0deg);
-  transition:transform .12s ease;
   position:relative;
   border-radius:50%;
-}
-.coin.flipping{
-  animation:coinFlip 1.4s cubic-bezier(.36,.07,.19,.97) forwards;
-}
-@keyframes coinFlip{
-  0%   {transform:rotateY(0deg)    translateY(0)}
-  10%  {transform:rotateY(360deg)  translateY(-40px)}
-  25%  {transform:rotateY(900deg)  translateY(-90px)}
-  40%  {transform:rotateY(1440deg) translateY(-110px)}
-  55%  {transform:rotateY(1980deg) translateY(-90px)}
-  70%  {transform:rotateY(2520deg) translateY(-40px)}
-  85%  {transform:rotateY(2880deg) translateY(-8px)}
-  100% {transform:rotateY(3060deg) translateY(0)}
-}
-/* coin-front = ÁGUILA (rotateY 0°/360°/720°...).
-   coin-back  = SOL    (rotateY 180°/540°/900°...).
-   Para terminar mostrando ÁGUILA, el ángulo final debe ser
-   múltiplo exacto de 360°. Para terminar en SOL, debe ser
-   360°×n + 180°. Los giros intermedios son iguales (mismo
-   efecto visual de giro), solo cambia el ángulo final exacto. */
-.coin.flipping.land-aguila{
-  animation-name:coinFlipAguila;
-}
-.coin.flipping.land-sol{
-  animation-name:coinFlipSol;
-}
-@keyframes coinFlipAguila{
-  0%   {transform:rotateY(0deg)    translateY(0)}
-  10%  {transform:rotateY(360deg)  translateY(-40px)}
-  25%  {transform:rotateY(900deg)  translateY(-90px)}
-  40%  {transform:rotateY(1440deg) translateY(-110px)}
-  55%  {transform:rotateY(1980deg) translateY(-90px)}
-  70%  {transform:rotateY(2520deg) translateY(-40px)}
-  85%  {transform:rotateY(2880deg) translateY(-8px)}
-  100% {transform:rotateY(2880deg) translateY(0)}  /* 2880 = 360×8 → múltiplo exacto = ÁGUILA al frente */
-}
-@keyframes coinFlipSol{
-  0%   {transform:rotateY(0deg)    translateY(0)}
-  10%  {transform:rotateY(360deg)  translateY(-40px)}
-  25%  {transform:rotateY(900deg)  translateY(-90px)}
-  40%  {transform:rotateY(1440deg) translateY(-110px)}
-  55%  {transform:rotateY(1980deg) translateY(-90px)}
-  70%  {transform:rotateY(2520deg) translateY(-40px)}
-  85%  {transform:rotateY(2880deg) translateY(-8px)}
-  100% {transform:rotateY(3060deg) translateY(0)}  /* 3060 = 360×8+180 → SOL al frente */
-}
-.coin-face{
-  position:absolute;inset:0;
   background:radial-gradient(circle at 35% 30%,#ffe680,#d4a017 65%,#a87b0d 100%);
   border:6px solid #f0c419;
-  border-radius:50%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  backface-visibility:hidden;
   box-shadow:
     inset 0 4px 10px rgba(255,255,255,.4),
     inset 0 -6px 14px rgba(0,0,0,.35),
     0 0 30px rgba(255,214,0,.25);
 }
-.coin-face .cf-emoji{font-size:clamp(54px,16vw,84px);line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
-.coin-face .cf-label{
+/* Giro genérico: solo efecto visual de "está en el aire dando vueltas".
+   No determina el resultado — el resultado lo decide JS directamente
+   cambiando el emoji/texto dentro de .coin una vez que termina el giro. */
+.coin.spinning{
+  animation:coinSpin 1.3s cubic-bezier(.36,.07,.19,.97) forwards;
+}
+@keyframes coinSpin{
+  0%   {transform:scaleX(1)    translateY(0)}
+  10%  {transform:scaleX(.15)  translateY(-40px)}
+  20%  {transform:scaleX(1)    translateY(-70px)}
+  30%  {transform:scaleX(.15)  translateY(-95px)}
+  40%  {transform:scaleX(1)    translateY(-110px)}
+  50%  {transform:scaleX(.15)  translateY(-95px)}
+  60%  {transform:scaleX(1)    translateY(-70px)}
+  70%  {transform:scaleX(.15)  translateY(-40px)}
+  80%  {transform:scaleX(1)    translateY(-12px)}
+  90%  {transform:scaleX(.4)   translateY(0)}
+  100% {transform:scaleX(1)    translateY(0)}
+}
+.coin .cf-emoji{font-size:clamp(54px,16vw,84px);line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.coin .cf-label{
   font-family:'Bebas Neue';font-size:clamp(14px,4vw,20px);
   letter-spacing:3px;color:#5a3d05;margin-top:4px;
   text-shadow:0 1px 0 rgba(255,255,255,.3);
 }
-.coin-front{transform:translateZ(1px)}
-.coin-back{transform:rotateY(180deg) translateZ(1px)}
 
 .coin-shadow{
   position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
@@ -1059,14 +1021,8 @@ body::before{
       <!-- Coin -->
       <div class="coin-wrap" id="dice-wrap">
         <div class="coin" id="the-dice">
-          <div class="coin-face coin-front">
-            <div class="cf-emoji">🦅</div>
-            <div class="cf-label">ÁGUILA</div>
-          </div>
-          <div class="coin-face coin-back">
-            <div class="cf-emoji">☀️</div>
-            <div class="cf-label">SOL</div>
-          </div>
+          <div class="cf-emoji" id="coin-emoji">🦅</div>
+          <div class="cf-label" id="coin-label">ÁGUILA</div>
         </div>
         <div class="coin-shadow"></div>
         <div class="tap-ripple" id="tap-ripple"></div>
@@ -1729,8 +1685,9 @@ async function rollDice(){
   duckMusic(1700);
 
   // Decide win via Supabase ANTES de animar — el backend ya controla
-  // probabilidad e inventario; la animación solo refleja visualmente
-  // ese resultado, mostrando la cara que "coincide" o no con la elección.
+  // probabilidad e inventario. La animación es puramente visual y
+  // al final SIEMPRE muestra exactamente la cara que corresponde al
+  // resultado real, sin depender de ángulos de rotación CSS.
   let won=false;
   try{
     const {data,error}=await _sb.rpc('asignar_premio',{p_participante_id:ST.player.id});
@@ -1745,22 +1702,40 @@ async function rollDice(){
     return;
   }
 
-  // Si gana: la moneda debe caer en la cara que el jugador eligió.
+  // Si gana: la moneda "cae" en la cara que el jugador eligió.
   // Si no gana: cae en la cara contraria.
   const landingSide = won ? playerChoice : (playerChoice==='aguila' ? 'sol' : 'aguila');
-
-  const coin=document.getElementById('the-dice');
-  coin.classList.remove('land-sol','land-aguila');
-  void coin.offsetWidth; // reinicia la animación si se repite
-  coin.classList.add('flipping', landingSide==='sol' ? 'land-sol' : 'land-aguila');
-  playDiceRoll();
-
-  await sleep(1450);
-
-  coin.classList.remove('flipping');
-
   const faceEmoji = landingSide==='sol' ? '☀️' : '🦅';
   const faceLabel = landingSide==='sol' ? 'SOL' : 'ÁGUILA';
+
+  const coin=document.getElementById('the-dice');
+  const emojiEl=document.getElementById('coin-emoji');
+  const labelEl=document.getElementById('coin-label');
+
+  // Animación de giro: alterna rápidamente entre águila/sol mientras
+  // el CSS hace el efecto visual de "volteo" (scaleX). Esto SOLO es
+  // decorativo — el resultado final se fija directamente al terminar.
+  coin.classList.remove('spinning');
+  void coin.offsetWidth;
+  coin.classList.add('spinning');
+  playDiceRoll();
+
+  let flickerCount=0;
+  const flickerTimer=setInterval(()=>{
+    flickerCount++;
+    if(flickerCount%2===0){ emojiEl.textContent='🦅'; labelEl.textContent='ÁGUILA'; }
+    else{ emojiEl.textContent='☀️'; labelEl.textContent='SOL'; }
+  }, 110);
+
+  await sleep(1300);
+
+  clearInterval(flickerTimer);
+  coin.classList.remove('spinning');
+
+  // Resultado final: se fija de forma directa y explícita, sin
+  // ambigüedad de transformaciones 3D. Lo que ves es lo que es.
+  emojiEl.textContent = faceEmoji;
+  labelEl.textContent = faceLabel;
   document.getElementById('dice-result-emoji').textContent=faceEmoji;
 
   // Update local player
