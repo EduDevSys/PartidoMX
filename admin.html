@@ -23,7 +23,7 @@
 html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);color:#fff;overflow:hidden}
 
 /* ── LAYOUT ── */
-.app{display:flex;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 
 /* ── SIDEBAR ── */
 .sidebar{
@@ -31,12 +31,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
   background:var(--g1);
   border-right:1px solid var(--borde);
   display:flex;flex-direction:column;
-  overflow:hidden;
+  overflow-y:auto;
+  height:100%;
 }
 .sb-logo{
   padding:22px 20px 16px;
   border-bottom:1px solid var(--borde);
   display:flex;flex-direction:column;gap:4px;
+  flex-shrink:0;
 }
 .sb-title{font-family:'Bebas Neue';font-size:20px;color:var(--oro);letter-spacing:2px}
 .sb-sub{font-size:11px;color:var(--text-dim);letter-spacing:.5px}
@@ -49,7 +51,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 @keyframes lp{0%,100%{opacity:1}50%{opacity:.3}}
 .live-badge span{font-size:11px;font-weight:700;color:var(--rojo);letter-spacing:1px}
 
-.sb-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.sb-nav{flex:1 1 auto;min-height:0;padding:12px 10px;overflow-y:auto}
 .nav-btn{
   display:flex;align-items:center;gap:12px;width:100%;
   padding:12px 14px;border-radius:12px;border:none;
@@ -62,7 +64,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 .nav-btn:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-btn.a{background:rgba(255,214,0,.1);color:var(--oro);border:1px solid rgba(255,214,0,.2)}
 
-.sb-footer{padding:14px 16px;border-top:1px solid var(--borde)}
+.sb-footer{padding:14px 16px;border-top:1px solid var(--borde);flex-shrink:0}
 .sb-user{font-size:12px;color:var(--text-dim);margin-bottom:8px;word-break:break-all}
 .btn-out{
   width:100%;padding:10px;border-radius:10px;
@@ -282,7 +284,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 /* RESPONSIVE */
 @media(max-width:700px){
   .sidebar{
-    position:fixed;top:0;left:0;height:100vh;z-index:1000;
+    position:fixed;top:0;left:0;height:100vh;height:100dvh;z-index:1000;
     transform:translateX(-100%);
     transition:transform .25s ease;
     box-shadow:8px 0 30px rgba(0,0,0,.5);
