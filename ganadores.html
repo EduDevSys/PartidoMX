@@ -346,6 +346,83 @@ body::before{
   0%,100%{box-shadow:0 8px 40px rgba(0,200,83,.6)}
   50%{box-shadow:0 8px 60px rgba(0,200,83,.95)}
 }
+
+/* ── Modo Staff ── */
+.staff-toggle{
+  position:fixed;bottom:16px;right:16px;z-index:500;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.5);width:44px;height:44px;border-radius:50%;
+  font-size:17px;cursor:pointer;backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+}
+.staff-toggle.active{
+  background:rgba(0,200,83,.18);border-color:rgba(0,200,83,.5);color:var(--verde2);
+  box-shadow:0 0 16px rgba(0,200,83,.4);
+}
+.staff-banner{
+  display:none;
+  background:rgba(0,200,83,.12);border-bottom:2px solid rgba(0,200,83,.4);
+  padding:8px 28px;text-align:center;
+  font-size:13px;font-weight:700;color:var(--verde2);
+  letter-spacing:1px;
+}
+.staff-banner.on{display:block}
+
+/* ── Modal: PIN de staff ── */
+.staff-modal-bg{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(2,2,4,.92);
+  display:none;align-items:center;justify-content:center;
+  padding:24px;backdrop-filter:blur(6px);
+}
+.staff-modal-bg.on{display:flex}
+.staff-modal-card{
+  width:100%;max-width:360px;text-align:center;
+  background:rgba(255,255,255,.05);
+  border:2px solid rgba(0,200,83,.3);
+  border-radius:28px;padding:32px 26px;
+  box-shadow:0 20px 80px rgba(0,0,0,.6);
+}
+.sm-icon{font-size:42px;margin-bottom:12px}
+.sm-title{
+  font-family:'Bebas Neue';font-size:24px;letter-spacing:1.5px;
+  color:#fff;margin-bottom:18px;
+}
+.sm-input{
+  width:100%;background:rgba(255,255,255,.07);
+  border:1.5px solid rgba(255,255,255,.18);
+  color:#fff;text-align:center;
+  font-family:'Bebas Neue';font-size:28px;letter-spacing:8px;
+  padding:14px;border-radius:14px;outline:none;margin-bottom:8px;
+  -webkit-appearance:none;
+}
+.sm-input:focus{border-color:var(--verde2)}
+.sm-err{color:var(--rojo);font-size:12px;font-weight:700;min-height:16px;margin-bottom:14px}
+.sm-actions{display:flex;gap:10px}
+.sm-actions button{
+  flex:1;padding:12px;border-radius:12px;border:none;
+  font-weight:700;font-size:14px;cursor:pointer;
+}
+.sm-cancel{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.sm-confirm{background:linear-gradient(135deg,var(--verde),var(--verde2));color:#000}
+
+/* ── Botón entregar en cada fila de ganador ── */
+.wr-deliver-btn{
+  display:none;
+  background:rgba(0,200,83,.15);border:1px solid rgba(0,200,83,.4);
+  color:var(--verde2);padding:6px 12px;border-radius:50px;
+  font-size:clamp(10px,1.2vw,12px);font-weight:700;cursor:pointer;
+  white-space:nowrap;transition:all .15s;
+}
+.wr-deliver-btn:hover{background:rgba(0,200,83,.25)}
+.wr-deliver-btn:active{transform:scale(.93)}
+.staff-mode .wr-deliver-btn{display:inline-flex;align-items:center;gap:4px}
+.staff-mode .wr-badge-win.delivered{display:none}
+.wr-badge-delivered{
+  background:rgba(0,200,83,.18);border:1px solid rgba(0,200,83,.4);
+  color:var(--verde2);padding:4px 10px;border-radius:50px;
+  font-size:clamp(10px,1.2vw,12px);font-weight:700;white-space:nowrap;
+}
 </style>
 </head>
 <body>
@@ -362,7 +439,8 @@ body::before{
   </div>
 </div>
 
-<div class="root">
+<div class="root" id="root-app">
+  <div class="staff-banner" id="staff-banner">🔓 MODO STAFF ACTIVO — puedes marcar premios como entregados</div>
   <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-left">
@@ -441,6 +519,22 @@ body::before{
 </div>
 
 <button id="music-toggle2" onclick="toggleMusic2()" style="position:fixed;bottom:16px;left:16px;z-index:500;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.6);width:44px;height:44px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(12px)">🔊</button>
+
+<button id="staff-toggle" class="staff-toggle" onclick="onStaffToggleClick()" title="Modo staff">🔒</button>
+
+<!-- ══ MODAL: PIN de staff ══ -->
+<div class="staff-modal-bg" id="staff-modal">
+  <div class="staff-modal-card">
+    <div class="sm-icon">🔐</div>
+    <div class="sm-title">ACCESO STAFF</div>
+    <input type="password" id="staff-pin-input" class="sm-input" maxlength="6" inputmode="numeric" placeholder="••••" autocomplete="off">
+    <div class="sm-err" id="staff-pin-err"></div>
+    <div class="sm-actions">
+      <button class="sm-cancel" onclick="closeStaffModal()">Cancelar</button>
+      <button class="sm-confirm" onclick="checkStaffPin()">Entrar</button>
+    </div>
+  </div>
+</div>
 
 <!--
   ══════════════════════════════════════════════════════════
@@ -524,6 +618,103 @@ function toggleMusic2(){
   if(btn) btn.textContent=musicMuted2?'🔇':'🔊';
   if(musicMuted2){ stopMusic2(); musicPlaying2=false; }
   else { musicPlaying2=false; startMusic2(); }
+}
+
+// ══════════════════════════════════════════
+//  MODO STAFF — protegido con PIN
+// ══════════════════════════════════════════
+// Cambia este PIN antes del evento. Es una protección básica
+// para que el público no marque premios como entregados por error,
+// no un sistema de seguridad fuerte.
+const STAFF_PIN = '1234';
+let staffModeActive = false;
+
+function onStaffToggleClick(){
+  if(staffModeActive){
+    deactivateStaffMode();
+  } else {
+    document.getElementById('staff-pin-input').value='';
+    document.getElementById('staff-pin-err').textContent='';
+    document.getElementById('staff-modal').classList.add('on');
+    setTimeout(()=>document.getElementById('staff-pin-input').focus(),100);
+  }
+}
+
+function closeStaffModal(){
+  document.getElementById('staff-modal').classList.remove('on');
+}
+
+function checkStaffPin(){
+  const val=document.getElementById('staff-pin-input').value.trim();
+  if(val===STAFF_PIN){
+    closeStaffModal();
+    activateStaffMode();
+  } else {
+    document.getElementById('staff-pin-err').textContent='PIN incorrecto';
+    document.getElementById('staff-pin-input').value='';
+    document.getElementById('staff-pin-input').focus();
+  }
+}
+
+document.getElementById('staff-pin-input')?.addEventListener('keydown', e=>{
+  if(e.key==='Enter') checkStaffPin();
+});
+
+function activateStaffMode(){
+  staffModeActive=true;
+  document.getElementById('root-app').classList.add('staff-mode');
+  document.getElementById('staff-banner').classList.add('on');
+  document.getElementById('staff-toggle').classList.add('active');
+  document.getElementById('staff-toggle').textContent='🔓';
+  toast2('Modo staff activado');
+}
+
+function deactivateStaffMode(){
+  staffModeActive=false;
+  document.getElementById('root-app').classList.remove('staff-mode');
+  document.getElementById('staff-banner').classList.remove('on');
+  document.getElementById('staff-toggle').classList.remove('active');
+  document.getElementById('staff-toggle').textContent='🔒';
+  toast2('Modo staff desactivado');
+}
+
+async function markDelivered(codigo){
+  const winner=winners.find(w=>w.codigo===codigo);
+  if(!winner){ return; }
+  if(winner.entregado){ return; }
+
+  if(!winner.id){
+    // Caso raro: llegó por broadcast y no se pudo resolver el id antes.
+    // Intentamos resolverlo ahora mismo.
+    try{
+      const {data}=await _sb.from('participantes').select('id').eq('codigo',codigo).single();
+      winner.id = data?.id||null;
+    }catch(e){}
+    if(!winner.id){ toast2('❌ No se pudo identificar al ganador, espera unos segundos e intenta de nuevo'); return; }
+  }
+
+  const {data:ok,error}=await _sb.rpc('entregar_premio',{p_participante_id:winner.id});
+  if(error || !ok){ toast2('❌ Error al marcar como entregado'); return; }
+
+  winner.entregado=true;
+  renderTable();
+  toast2(`✅ Premio de ${winner.nombre} marcado como entregado`);
+}
+
+// Toast simple para el tablero (no existe uno aquí todavía)
+function toast2(msg){
+  let t=document.getElementById('tablero-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='tablero-toast';
+    t.style.cssText='position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(14,14,22,.97);color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;font-weight:700;z-index:9999;transition:transform .3s,opacity .3s;opacity:0;box-shadow:0 8px 36px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);white-space:nowrap;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.opacity='1';
+  t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._tt);
+  t._tt=setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; },2600);
 }
 
 function duckTableroMusic(durationMs=2400){
@@ -665,12 +856,12 @@ async function loadInitial(){
   // Load existing winners
   const {data:existing}=await _sb
     .from('participantes')
-    .select('nombre,codigo,fecha_juego')
+    .select('id,nombre,codigo,fecha_juego,premio_entregado')
     .eq('resultado','ganador')
     .order('fecha_juego',{ascending:false})
     .limit(50);
   if(existing?.length){
-    winners=existing.map(p=>({nombre:p.nombre,codigo:p.codigo,ts:new Date(p.fecha_juego).getTime()}));
+    winners=existing.map(p=>({id:p.id,nombre:p.nombre,codigo:p.codigo,ts:new Date(p.fecha_juego).getTime(),entregado:p.premio_entregado===true}));
     renderTable();
     // Spotlight: last winner
     showSpotlight(winners[0]);
@@ -696,9 +887,16 @@ function subscribeRealtime(){
   _sb.channel('tablero-db')
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes'},(payload)=>{
       const row=payload.new;
-      if(row.resultado==='ganador' && !winners.find(w=>w.codigo===row.codigo)){
-        const w={nombre:row.nombre,codigo:row.codigo,ts:Date.now()};
+      const existing=winners.find(w=>w.codigo===row.codigo);
+
+      if(row.resultado==='ganador' && !existing){
+        const w={id:row.id,nombre:row.nombre,codigo:row.codigo,ts:Date.now(),entregado:row.premio_entregado===true};
         onNewWinner(w);
+      } else if(existing && row.premio_entregado !== existing.entregado){
+        // Sincroniza si se marcó/desmarcó como entregado desde otra vista (ej. admin)
+        existing.entregado = row.premio_entregado===true;
+        existing.id = existing.id || row.id;
+        renderTable();
       }
       refreshStats();
     })
@@ -706,10 +904,17 @@ function subscribeRealtime(){
 
   // Broadcast from player app
   _sb.channel('winners-live')
-    .on('broadcast',{event:'nuevo_ganador'},(msg)=>{
+    .on('broadcast',{event:'nuevo_ganador'},async(msg)=>{
       const p=msg.payload;
       if(p && !winners.find(w=>w.codigo===p.codigo)){
-        onNewWinner({nombre:p.nombre,codigo:p.codigo,ts:p.ts||Date.now()});
+        // El broadcast no trae el id (UUID); lo resolvemos para poder
+        // usar el botón "marcar entregado" sobre este ganador.
+        let resolvedId=null;
+        try{
+          const {data}=await _sb.from('participantes').select('id').eq('codigo',p.codigo).single();
+          resolvedId=data?.id||null;
+        }catch(e){ /* si falla, el botón de entregar no funcionará hasta el próximo refresh */ }
+        onNewWinner({id:resolvedId,nombre:p.nombre,codigo:p.codigo,ts:p.ts||Date.now(),entregado:false});
         refreshStats();
       }
     })
@@ -748,7 +953,12 @@ function renderTable(){
     wrap.innerHTML='<div class="wt-empty" id="wt-empty"><div class="wt-empty-icon">🎲</div><div class="wt-empty-text">Aún no hay ganadores.<br>¡Sé el primero!</div></div>';
     return;
   }
-  wrap.innerHTML=winners.map((w,i)=>`
+  wrap.innerHTML=winners.map((w,i)=>{
+    const rightSide = w.entregado
+      ? `<div class="wr-badge-delivered">✅ Entregado</div>`
+      : `<div class="wr-badge-win">🏆 Ganador</div>
+         <button class="wr-deliver-btn" onclick="markDelivered('${w.codigo}')">📦 Marcar entregado</button>`;
+    return `
     <div class="winner-row ${i===0?'new':''}" id="wr-${w.codigo}">
       <div class="wr-rank ${i<3?'top3':''}">${i+1}</div>
       <div class="wr-emoji">${EMOJIS[Math.min(i,EMOJIS.length-1)]}</div>
@@ -757,9 +967,10 @@ function renderTable(){
         <div class="wr-code">${w.codigo}</div>
         <div class="wr-time">${timeAgo(w.ts)}</div>
       </div>
-      <div class="wr-badge-win">🏆 Ganador</div>
+      ${rightSide}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ── Celebration overlay ──
