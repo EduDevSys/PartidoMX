@@ -51,6 +51,29 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 @keyframes lp{0%,100%{opacity:1}50%{opacity:.3}}
 .live-badge span{font-size:11px;font-weight:700;color:var(--rojo);letter-spacing:1px}
 
+/* ── SELECTOR DE EVENTO ── */
+.evt-selector-wrap{
+  padding:14px 20px 16px;border-bottom:1px solid var(--borde);flex-shrink:0;
+}
+.evt-selector-label{
+  display:block;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--verde2);font-weight:700;margin-bottom:7px;
+}
+.evt-select{
+  width:100%;background:var(--g3);border:1.5px solid var(--borde);
+  color:#fff;padding:10px 12px;border-radius:10px;
+  font-size:13px;font-weight:700;font-family:'Inter';outline:none;
+  margin-bottom:8px;cursor:pointer;-webkit-appearance:none;
+}
+.evt-select option{background:#1a1a2e}
+.evt-new-btn{
+  width:100%;padding:9px;border-radius:10px;
+  background:rgba(255,214,0,.08);border:1px dashed rgba(255,214,0,.35);
+  color:var(--oro);font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .18s;
+}
+.evt-new-btn:hover{background:rgba(255,214,0,.15)}
+
 .sb-nav{flex:1 1 auto;min-height:0;padding:12px 10px;overflow-y:auto}
 .nav-btn{
   display:flex;align-items:center;gap:12px;width:100%;
@@ -333,16 +356,21 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
   <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <div class="sb-logo">
-      <div class="sb-title">⚽ ADMIN</div>
-      <div class="sb-sub">México vs Corea 2026</div>
+      <div class="sb-title">⚙️ ADMIN</div>
+      <div class="sb-sub">Panel multi-evento</div>
       <div class="live-badge"><div class="live-dot"></div><span>EN VIVO</span></div>
+    </div>
+    <div class="evt-selector-wrap">
+      <label class="evt-selector-label">📅 Evento activo</label>
+      <select id="evento-select" class="evt-select" onchange="onEventoChange(this.value)"></select>
+      <button class="evt-new-btn" onclick="openNewEventModal()">+ Nuevo evento</button>
     </div>
     <div class="sb-nav">
       <button class="nav-btn a" onclick="switchTab('dash',this);closeMobileMenu()"><span class="ico">📊</span> Dashboard</button>
       <button class="nav-btn" onclick="switchTab('parts',this);closeMobileMenu()"><span class="ico">👥</span> Participantes</button>
       <button class="nav-btn" onclick="switchTab('inv',this);closeMobileMenu()"><span class="ico">📦</span> Inventario</button>
-      <button class="nav-btn" onclick="window.open('ganadores.html','_blank')"><span class="ico">🏆</span> Tablero Ganadores</button>
-      <button class="nav-btn" onclick="window.open('index.html','_blank')"><span class="ico">📱</span> Ver App</button>
+      <button class="nav-btn" onclick="openGanadoresTab()"><span class="ico">🏆</span> Tablero Ganadores</button>
+      <button class="nav-btn" onclick="openAppTab()"><span class="ico">📱</span> Ver App</button>
     </div>
     <div class="sb-footer">
       <div class="sb-user" id="sb-email">—</div>
@@ -463,7 +491,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
   <div class="modal">
     <h3 style="color:var(--rl)">⚠️ Reiniciar dinámica</h3>
     <p style="font-size:14px;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:14px">
-      Esto <strong style="color:var(--rl)">borrará permanentemente</strong> a todos los participantes y ganadores registrados, y reiniciará el inventario de premios a su cantidad original. La dinámica volverá a su estado inicial, como si la app se usara por primera vez.
+      Esto <strong style="color:var(--rl)">borrará permanentemente</strong> a todos los participantes y ganadores registrados de <strong id="reset-evento-nombre">este evento</strong>, y reiniciará el inventario de premios a su cantidad original. La dinámica volverá a su estado inicial, como si la app se usara por primera vez.
     </p>
     <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:8px">
       Esta acción <strong>no se puede deshacer</strong>. Escribe <strong style="color:var(--rl)">REINICIAR</strong> para confirmar:
@@ -478,13 +506,40 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
   </div>
 </div>
 
+<!-- MODAL: Nuevo evento -->
+<div class="modal-bg" id="new-event-modal">
+  <div class="modal">
+    <h3>📅 Nuevo evento</h3>
+    <div class="fg">
+      <label>Nombre del evento</label>
+      <input type="text" id="ne-nombre" placeholder="Ej: Lucha Libre" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label>Identificador para el QR/URL</label>
+      <input type="text" id="ne-slug" placeholder="Ej: lucha-libre" autocomplete="off">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:5px">
+        Solo minúsculas, números y guiones. Se usa así: index.html?evento=<span id="ne-slug-preview">tu-slug</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Inventario inicial de premios</label>
+      <input type="number" id="ne-inventario" value="500" min="0">
+    </div>
+    <div class="lerr" id="ne-err"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeNewEventModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="createNewEvent()">Crear evento</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 'use strict';
 // SUPABASE_URL, SUPABASE_ANON y _sb vienen de config.js
 
-const ST={ session:null, parts:[], prizes:[] };
+const ST={ session:null, parts:[], prizes:[], eventos:[], eventoId:null, eventoSlug:null };
 
 // ══ RESTAURAR SESIÓN AL CARGAR LA PÁGINA ══
 // Supabase guarda la sesión en localStorage por defecto; aquí la
@@ -535,7 +590,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&document.getElement
 let dinamicaPausada = false;
 
 async function loadPauseState(){
-  const {data} = await _sb.from('config_evento').select('pausado').eq('id',1).single();
+  const {data} = await _sb.from('config_evento').select('pausado').eq('evento_id',ST.eventoId).single();
   dinamicaPausada = data?.pausado === true;
   renderPauseUI();
 }
@@ -558,7 +613,7 @@ function renderPauseUI(){
 
 async function togglePause(){
   const next = !dinamicaPausada;
-  const {error} = await _sb.rpc('set_pausa',{p_pausado:next});
+  const {error} = await _sb.rpc('set_pausa',{p_evento_id:ST.eventoId,p_pausado:next});
   if(error){ toast('❌ Error al cambiar el estado'); return; }
   dinamicaPausada = next;
   renderPauseUI();
@@ -570,7 +625,7 @@ let probabilidadActual = 0.20;
 let probSaveTimer = null;
 
 async function loadProbState(){
-  const {data} = await _sb.from('config_evento').select('probabilidad_ganar').eq('id',1).single();
+  const {data} = await _sb.from('config_evento').select('probabilidad_ganar').eq('evento_id',ST.eventoId).single();
   probabilidadActual = (data?.probabilidad_ganar ?? 0.20);
   renderProbUI();
 }
@@ -607,7 +662,7 @@ function setProbPreset(pct){
 
 async function saveProbabilidad(pct){
   const fraccion = pct / 100;
-  const {error} = await _sb.rpc('set_probabilidad',{p_probabilidad:fraccion});
+  const {error} = await _sb.rpc('set_probabilidad',{p_evento_id:ST.eventoId,p_probabilidad:fraccion});
   if(error){ toast('❌ Error al actualizar la probabilidad'); return; }
   probabilidadActual = fraccion;
   toast(`🎯 Probabilidad de ganar ajustada a ${pct}%`);
@@ -617,6 +672,8 @@ async function saveProbabilidad(pct){
 function openResetModal(){
   document.getElementById('reset-confirm-input').value='';
   document.getElementById('btn-reset-confirm').disabled=true;
+  const ev = ST.eventos.find(e=>e.id===ST.eventoId);
+  document.getElementById('reset-evento-nombre').textContent = ev ? `"${ev.nombre}"` : 'este evento';
   document.getElementById('reset-modal').classList.add('on');
 }
 function closeResetModal(){
@@ -641,9 +698,8 @@ async function executeReset(){
   let prizesOk = false;
 
   try{
-    // 1) Restaurar inventario PRIMERO (esto casi nunca falla por RLS,
-    //    así que si algo sale mal después, al menos esto ya quedó bien)
-    const {data: prizes, error: errPrizesGet} = await _sb.from('premios').select('id,cantidad_total');
+    // 1) Restaurar inventario PRIMERO, SOLO del evento seleccionado
+    const {data: prizes, error: errPrizesGet} = await _sb.from('premios').select('id,cantidad_total').eq('evento_id',ST.eventoId);
     if(errPrizesGet) throw new Error('No se pudo leer el inventario: '+errPrizesGet.message);
 
     for(const p of (prizes||[])){
@@ -656,11 +712,11 @@ async function executeReset(){
     }
     prizesOk = true;
 
-    // 2) Borrar todos los participantes
+    // 2) Borrar SOLO los participantes del evento seleccionado
     const {error: errParts} = await _sb
       .from('participantes')
       .delete()
-      .neq('id','00000000-0000-0000-0000-000000000000');
+      .eq('evento_id', ST.eventoId);
 
     if(errParts){
       // Caso típico: falta la policy de DELETE en Supabase (RLS)
@@ -672,8 +728,8 @@ async function executeReset(){
     }
     partsOk = true;
 
-    // 3) Quitar pausa si estaba activa
-    await _sb.rpc('set_pausa',{p_pausado:false});
+    // 3) Quitar pausa si estaba activa (solo de este evento)
+    await _sb.rpc('set_pausa',{p_evento_id:ST.eventoId,p_pausado:false});
     dinamicaPausada=false;
     renderPauseUI();
 
@@ -699,8 +755,120 @@ async function executeReset(){
 
 // ══ INIT ══
 async function initApp(){
+  await loadEventos();
+  if(!ST.eventoId){
+    toast('⚠️ No hay eventos configurados. Crea uno para comenzar.');
+    return;
+  }
   await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadProbState()]);
   subscribeRT();
+}
+
+// ══ CATÁLOGO DE EVENTOS ══
+async function loadEventos(){
+  const {data,error}=await _sb.from('eventos').select('*').order('creado_en');
+  if(error){ toast('❌ Error al cargar eventos'); return; }
+  ST.eventos = data||[];
+
+  const sel=document.getElementById('evento-select');
+  sel.innerHTML = ST.eventos.map(e=>
+    `<option value="${e.id}" ${!e.activo?'disabled':''}>${esc(e.nombre)}${!e.activo?' (inactivo)':''}</option>`
+  ).join('');
+
+  // Restaurar el último evento elegido (si sigue existiendo), o el primero disponible
+  const savedId = localStorage.getItem('admin_evento_id');
+  const match = ST.eventos.find(e=>e.id===savedId) || ST.eventos[0];
+  if(match){
+    ST.eventoId = match.id;
+    ST.eventoSlug = match.slug;
+    sel.value = match.id;
+    localStorage.setItem('admin_evento_id', match.id);
+  }
+}
+
+async function onEventoChange(eventoId){
+  const ev = ST.eventos.find(e=>e.id===eventoId);
+  if(!ev) return;
+  ST.eventoId = ev.id;
+  ST.eventoSlug = ev.slug;
+  localStorage.setItem('admin_evento_id', ev.id);
+  toast(`📅 Evento activo: ${ev.nombre}`);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadProbState()]);
+  subscribeRT();
+}
+
+function openGanadoresTab(){
+  if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
+  window.open(`ganadores.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
+}
+function openAppTab(){
+  if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
+  window.open(`index.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
+}
+
+// ══ CREAR NUEVO EVENTO ══
+function openNewEventModal(){
+  document.getElementById('ne-nombre').value='';
+  document.getElementById('ne-slug').value='';
+  document.getElementById('ne-inventario').value='500';
+  document.getElementById('ne-err').textContent='';
+  document.getElementById('new-event-modal').classList.add('on');
+}
+function closeNewEventModal(){
+  document.getElementById('new-event-modal').classList.remove('on');
+}
+
+function slugify(s){
+  return s.toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // quitar acentos
+    .replace(/[^a-z0-9\s-]/g,'')
+    .replace(/\s+/g,'-')
+    .replace(/-+/g,'-');
+}
+
+document.getElementById('ne-nombre')?.addEventListener('input', (e)=>{
+  const slugEl=document.getElementById('ne-slug');
+  if(!slugEl.dataset.touched){
+    slugEl.value = slugify(e.target.value);
+    document.getElementById('ne-slug-preview').textContent = slugEl.value || 'tu-slug';
+  }
+});
+document.getElementById('ne-slug')?.addEventListener('input', (e)=>{
+  e.target.dataset.touched='1';
+  e.target.value = slugify(e.target.value);
+  document.getElementById('ne-slug-preview').textContent = e.target.value || 'tu-slug';
+});
+
+async function createNewEvent(){
+  const nombre=document.getElementById('ne-nombre').value.trim();
+  const slug=document.getElementById('ne-slug').value.trim();
+  const inv=parseInt(document.getElementById('ne-inventario').value);
+  const errEl=document.getElementById('ne-err');
+  errEl.textContent='';
+
+  if(!nombre){ errEl.textContent='Ingresa el nombre del evento'; return; }
+  if(!slug){ errEl.textContent='Ingresa un identificador'; return; }
+  if(isNaN(inv)||inv<0){ errEl.textContent='Inventario inválido'; return; }
+
+  const {data,error}=await _sb.rpc('crear_evento',{
+    p_nombre:nombre, p_slug:slug, p_inventario_inicial:inv
+  });
+
+  if(error){
+    errEl.textContent = error.message.includes('duplicate')||error.message.includes('unique')
+      ? 'Ese identificador ya está en uso, elige otro'
+      : 'Error al crear el evento';
+    return;
+  }
+
+  closeNewEventModal();
+  toast(`✅ Evento "${nombre}" creado`);
+  await loadEventos();
+  // Cambiar automáticamente al evento recién creado
+  if(data){
+    document.getElementById('evento-select').value=data;
+    await onEventoChange(data);
+  }
 }
 
 // ══ TABS ══
@@ -734,12 +902,12 @@ async function loadDash(){
     {data:inv},
     {data:recent},
   ] = await Promise.all([
-    _sb.from('participantes').select('*',{count:'exact',head:true}),
-    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador'),
-    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('premio_entregado',true),
-    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador').eq('premio_entregado',false),
-    _sb.from('premios').select('*').order('creado_en'),
-    _sb.from('participantes').select('nombre,codigo,fecha_juego').eq('resultado','ganador').order('fecha_juego',{ascending:false}).limit(5),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',ST.eventoId),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',ST.eventoId).eq('resultado','ganador'),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',ST.eventoId).eq('premio_entregado',true),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',ST.eventoId).eq('resultado','ganador').eq('premio_entregado',false),
+    _sb.from('premios').select('*').eq('evento_id',ST.eventoId).order('creado_en'),
+    _sb.from('participantes').select('nombre,codigo,fecha_juego,entregado_por').eq('evento_id',ST.eventoId).eq('resultado','ganador').order('fecha_juego',{ascending:false}).limit(5),
   ]);
 
   const invTot=inv?.reduce((s,p)=>s+p.cantidad_total,0)??0;
@@ -778,7 +946,7 @@ function sc(num,lbl,cls){ return `<div class="scard ${cls}"><div class="snum">${
 
 // ══ PARTICIPANTES ══
 async function loadParts(){
-  const {data}=await _sb.from('participantes').select('*').order('fecha_registro',{ascending:false});
+  const {data}=await _sb.from('participantes').select('*').eq('evento_id',ST.eventoId).order('fecha_registro',{ascending:false});
   ST.parts=data||[]; renderParts();
 }
 
@@ -808,9 +976,11 @@ function renderParts(){
         :`<span class="badge badge-gray">Participante</span>`;
     const btn=p.resultado==='ganador'?`<button class="pc-btn" ${p.premio_entregado?'disabled':''} onclick="dlvPrize('${p.id}')">${p.premio_entregado?'✅ Premio entregado':'🎁 Marcar entregado'}</button>`:'';
     const prize=p.premio_asignado?`<br>🎁 <strong>${esc(p.premio_asignado)}</strong>`:'' ;
+    const porQuien=p.premio_entregado && p.entregado_por
+      ? `<br>👤 Confirmado por: <strong>${p.entregado_por==='jugador'?'el jugador (autoreporte)':'staff'}</strong>` : '';
     return `<div class="pc ${p.resultado==='ganador'?'win':''} ${p.premio_entregado?'dlv':''}" id="pc-${p.id}">
       <div class="pc-head"><div class="pc-name">${esc(p.nombre)}</div><div class="pc-code">${p.codigo}</div></div>
-      <div class="pc-info">📞 ${esc(p.telefono)} · 📧 ${esc(p.correo)}<br>🏠 ${esc(p.colonia)}<br>🗓 ${dr}${p.fecha_entrega?`<br>📦 Entrega: ${dd}`:''}${prize}</div>
+      <div class="pc-info">📞 ${esc(p.telefono)} · 📧 ${esc(p.correo)}<br>🏠 ${esc(p.colonia)}<br>🗓 ${dr}${p.fecha_entrega?`<br>📦 Entrega: ${dd}`:''}${prize}${porQuien}</div>
       <div class="pc-badges">${badge}</div>
       ${btn}
     </div>`;
@@ -820,7 +990,7 @@ function renderParts(){
 async function dlvPrize(id){
   const p=ST.parts.find(x=>x.id===id);
   if(!p||p.premio_entregado){ toast('⚠️ Ya fue entregado'); return; }
-  const {data:ok,error}=await _sb.rpc('entregar_premio',{p_participante_id:id});
+  const {data:ok,error}=await _sb.rpc('entregar_premio',{p_participante_id:id,p_origen:'staff'});
   if(error||!ok){ toast('❌ Error'); return; }
   toast('✅ Premio marcado como entregado');
   await loadParts(); await loadDash();
@@ -828,7 +998,7 @@ async function dlvPrize(id){
 
 // ══ INVENTARIO ══
 async function loadInventory(){
-  const {data}=await _sb.from('premios').select('*').order('creado_en');
+  const {data}=await _sb.from('premios').select('*').eq('evento_id',ST.eventoId).order('creado_en');
   ST.prizes=data||[]; renderInventory();
 }
 
@@ -902,6 +1072,7 @@ async function savePrize(){
     toast('✅ Actualizado');
   } else {
     const {error}=await _sb.from('premios').insert({
+      evento_id:ST.eventoId,
       nombre_premio:name,cantidad_total:total,cantidad_restante:total,
       cantidad_asignada:0,cantidad_entregada:0,activo:true
     });
@@ -933,20 +1104,25 @@ async function deletePrize(id){
 }
 
 // ══ REALTIME ══
+let rtChannel=null;
+
 function subscribeRT(){
-  _sb.channel('admin-rt')
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'participantes'},async()=>{
+  // Si ya había un canal de un evento anterior, lo cerramos primero
+  if(rtChannel){ _sb.removeChannel(rtChannel); rtChannel=null; }
+
+  rtChannel = _sb.channel('admin-rt-'+ST.eventoId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'participantes',filter:`evento_id=eq.${ST.eventoId}`},async()=>{
       await loadParts(); await loadDash();
     })
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes'},async(pl)=>{
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes',filter:`evento_id=eq.${ST.eventoId}`},async(pl)=>{
       const idx=ST.parts.findIndex(p=>p.id===pl.new.id);
       if(idx!==-1){ ST.parts[idx]=pl.new; renderParts(); } else await loadParts();
       await loadDash();
     })
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'premios'},async()=>{
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'premios',filter:`evento_id=eq.${ST.eventoId}`},async()=>{
       await loadInventory(); await loadDash();
     })
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento'},(pl)=>{
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento',filter:`evento_id=eq.${ST.eventoId}`},(pl)=>{
       dinamicaPausada = pl.new.pausado === true;
       renderPauseUI();
       if(pl.new.probabilidad_ganar != null){
@@ -962,8 +1138,8 @@ async function exportExcel(){
   if(typeof XLSX==='undefined'){ toast('❌ XLSX no disponible'); return; }
   toast('📊 Preparando…');
   const [{data:parts},{data:prizes}]=await Promise.all([
-    _sb.from('participantes').select('*').order('fecha_registro'),
-    _sb.from('premios').select('*').order('creado_en'),
+    _sb.from('participantes').select('*').eq('evento_id',ST.eventoId).order('fecha_registro'),
+    _sb.from('premios').select('*').eq('evento_id',ST.eventoId).order('creado_en'),
   ]);
   const pData=(parts||[]).map(p=>({
     'Nombre':p.nombre,'Teléfono':p.telefono,'Correo':p.correo,
@@ -972,6 +1148,7 @@ async function exportExcel(){
     'Resultado':p.resultado==='ganador'?'Ganador':p.resultado==='participante'?'Participante':'Sin jugar',
     'Premio asignado':p.premio_asignado||'—',
     'Premio entregado':p.premio_entregado?'Sí':'No',
+    'Entregado por':p.entregado_por==='jugador'?'Jugador (autoreporte)':p.entregado_por==='staff'?'Staff':'—',
     'Fecha registro':p.fecha_registro?new Date(p.fecha_registro).toLocaleString('es-MX'):'—',
     'Fecha entrega':p.fecha_entrega?new Date(p.fecha_entrega).toLocaleString('es-MX'):'—',
   }));
@@ -983,11 +1160,12 @@ async function exportExcel(){
   const wb=XLSX.utils.book_new();
   const ws1=XLSX.utils.json_to_sheet(pData);
   const ws2=XLSX.utils.json_to_sheet(iData);
-  ws1['!cols']=[{wch:24},{wch:14},{wch:28},{wch:30},{wch:14},{wch:10},{wch:12},{wch:18},{wch:16},{wch:22},{wch:22}];
+  ws1['!cols']=[{wch:24},{wch:14},{wch:28},{wch:30},{wch:14},{wch:10},{wch:12},{wch:18},{wch:16},{wch:18},{wch:22},{wch:22}];
   ws2['!cols']=[{wch:20},{wch:8},{wch:12},{wch:12},{wch:12},{wch:8}];
   XLSX.utils.book_append_sheet(wb,ws1,'Participantes');
   XLSX.utils.book_append_sheet(wb,ws2,'Inventario');
-  XLSX.writeFile(wb,`MxKorea_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const evNombre = (ST.eventos.find(e=>e.id===ST.eventoId)?.nombre || 'Evento').replace(/[^a-z0-9]+/gi,'_');
+  XLSX.writeFile(wb,`${evNombre}_${new Date().toISOString().slice(0,10)}.xlsx`);
   toast('✅ Excel exportado');
 }
 

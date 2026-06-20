@@ -500,13 +500,13 @@ async function markDelivered(codigo){
     // Caso raro: llegó por broadcast y no se pudo resolver el id antes.
     // Intentamos resolverlo ahora mismo.
     try{
-      const {data}=await _sb.from('participantes').select('id').eq('codigo',codigo).single();
+      const {data}=await _sb.from('participantes').select('id').eq('evento_id',EVENTO_ID).eq('codigo',codigo).single();
       winner.id = data?.id||null;
     }catch(e){}
     if(!winner.id){ toast2('❌ No se pudo identificar al ganador, espera unos segundos e intenta de nuevo'); return; }
   }
 
-  const {data:ok,error}=await _sb.rpc('entregar_premio',{p_participante_id:winner.id});
+  const {data:ok,error}=await _sb.rpc('entregar_premio',{p_participante_id:winner.id,p_origen:'staff'});
   if(error || !ok){ toast2('❌ Error al marcar como entregado'); return; }
 
   winner.entregado=true;
@@ -651,9 +651,46 @@ function doConfetti(){
 // ── State ──
 let winners = [];
 let statsData = {};
+let EVENTO_ID = null;
+let EVENTO_NOMBRE = '';
+
+// ── Resolver evento desde la URL (?evento=slug) ──
+async function resolveEventoTablero(){
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('evento') || 'mx-corea';
+
+  const {data, error} = await _sb.from('eventos').select('id,nombre,activo').eq('slug',slug).single();
+
+  if(error || !data){
+    document.body.innerHTML = `
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
+        text-align:center;padding:32px;color:#0a150a;font-family:'Inter',sans-serif;background:#eef4ee">
+        <div>
+          <div style="font-size:54px;margin-bottom:14px">🔍</div>
+          <div style="font-family:'Bebas Neue';font-size:30px;color:#005500;margin-bottom:10px">
+            EVENTO NO ENCONTRADO
+          </div>
+          <div style="opacity:.7;font-size:15px;line-height:1.6">
+            Verifica el enlace del tablero o contacta al organizador.
+          </div>
+        </div>
+      </div>`;
+    throw new Error('evento_no_encontrado');
+  }
+
+  EVENTO_ID = data.id;
+  EVENTO_NOMBRE = data.nombre;
+
+  const titleEl=document.querySelector('.hdr-title');
+  if(titleEl) titleEl.textContent = `🏆 TABLERO — ${data.nombre.toUpperCase()}`;
+}
 
 // ── Init ──
 window.addEventListener('DOMContentLoaded', async()=>{
+  try{
+    await resolveEventoTablero();
+  }catch(e){ return; }
+
   await loadInitial();
   subscribeRealtime();
   setInterval(refreshStats,15000);
@@ -661,8 +698,8 @@ window.addEventListener('DOMContentLoaded', async()=>{
 
 async function loadInitial(){
   const [{count:parts},{count:wins}] = await Promise.all([
-    _sb.from('participantes').select('*',{count:'exact',head:true}),
-    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador'),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID).eq('resultado','ganador'),
   ]);
   updateStats({ parts: parts??0, wins: wins??0 });
 
@@ -670,6 +707,7 @@ async function loadInitial(){
   const {data:existing}=await _sb
     .from('participantes')
     .select('id,nombre,codigo,fecha_juego,premio_entregado')
+    .eq('evento_id',EVENTO_ID)
     .eq('resultado','ganador')
     .order('fecha_juego',{ascending:false})
     .limit(50);
@@ -683,8 +721,8 @@ async function loadInitial(){
 
 async function refreshStats(){
   const [{count:p},{count:w}]=await Promise.all([
-    _sb.from('participantes').select('*',{count:'exact',head:true}),
-    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('resultado','ganador'),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID),
+    _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID).eq('resultado','ganador'),
   ]);
   updateStats({parts:p??0,wins:w??0});
 }
@@ -697,8 +735,8 @@ function updateStats({parts,wins}){
 // ── Realtime subscription ──
 function subscribeRealtime(){
   // DB changes
-  _sb.channel('tablero-db')
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes'},(payload)=>{
+  _sb.channel('tablero-db-'+EVENTO_ID)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes',filter:`evento_id=eq.${EVENTO_ID}`},(payload)=>{
       const row=payload.new;
       const existing=winners.find(w=>w.codigo===row.codigo);
 
@@ -706,7 +744,7 @@ function subscribeRealtime(){
         const w={id:row.id,nombre:row.nombre,codigo:row.codigo,ts:Date.now(),entregado:row.premio_entregado===true};
         onNewWinner(w);
       } else if(existing && row.premio_entregado !== existing.entregado){
-        // Sincroniza si se marcó/desmarcó como entregado desde otra vista (ej. admin)
+        // Sincroniza si se marcó/desmarcó como entregado desde otra vista (ej. admin o el propio jugador)
         existing.entregado = row.premio_entregado===true;
         existing.id = existing.id || row.id;
         renderTable();
@@ -715,18 +753,19 @@ function subscribeRealtime(){
     })
     .subscribe();
 
-  // Broadcast from player app
-  _sb.channel('winners-live')
+  // Broadcast from player app (canal específico de este evento)
+  _sb.channel('winners-live-'+EVENTO_ID)
     .on('broadcast',{event:'nuevo_ganador'},async(msg)=>{
       const p=msg.payload;
       if(p && !winners.find(w=>w.codigo===p.codigo)){
-        // El broadcast no trae el id (UUID); lo resolvemos para poder
-        // usar el botón "marcar entregado" sobre este ganador.
-        let resolvedId=null;
-        try{
-          const {data}=await _sb.from('participantes').select('id').eq('codigo',p.codigo).single();
-          resolvedId=data?.id||null;
-        }catch(e){ /* si falla, el botón de entregar no funcionará hasta el próximo refresh */ }
+        // El broadcast normalmente ya trae el id (UUID); si no, lo resolvemos.
+        let resolvedId=p.id||null;
+        if(!resolvedId){
+          try{
+            const {data}=await _sb.from('participantes').select('id').eq('evento_id',EVENTO_ID).eq('codigo',p.codigo).single();
+            resolvedId=data?.id||null;
+          }catch(e){ /* si falla, el botón de entregar no funcionará hasta el próximo refresh */ }
+        }
         onNewWinner({id:resolvedId,nombre:p.nombre,codigo:p.codigo,ts:p.ts||Date.now(),entregado:false});
         refreshStats();
       }

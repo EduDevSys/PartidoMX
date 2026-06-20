@@ -885,10 +885,10 @@ body::before{
 <div id="s-home" class="scr">
   <div class="top-bar">
     <div>
-      <div class="match">MÉXICO VS COREA</div>
-      <div class="ev-label">⚽ Dinámica de premios</div>
+      <div class="match" id="ev-title-home">MÉXICO VS COREA</div>
+      <div class="ev-label">🎉 Dinámica de premios</div>
     </div>
-    <div class="flags">🇲🇽 🇰🇷</div>
+    <div class="flags" id="ev-flags-home">🇲🇽 🇰🇷</div>
   </div>
   <div class="home-body">
     <div class="progress-dots">
@@ -1419,18 +1419,82 @@ const LS={
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
-const ST={ player:null };
+const ST={ player:null, eventoId:null, eventoNombre:'' };
+
+// ══════════════════════════════════════════
+//  RESOLVER EVENTO desde la URL (?evento=slug)
+// ══════════════════════════════════════════
+async function resolveEvento(){
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('evento') || LS.get('mxk_evento_slug') || 'mx-corea';
+
+  const {data, error} = await _sb.from('eventos').select('id,nombre,activo').eq('slug',slug).single();
+
+  if(error || !data){
+    document.getElementById('welcome-modal').classList.add('hide');
+    document.body.innerHTML = `
+      <div style="min-height:100svh;display:flex;align-items:center;justify-content:center;
+        text-align:center;padding:32px;color:#fff;font-family:'Inter',sans-serif">
+        <div>
+          <div style="font-size:54px;margin-bottom:14px">🔍</div>
+          <div style="font-family:'Bebas Neue';font-size:30px;color:#ffd600;margin-bottom:10px">
+            EVENTO NO ENCONTRADO
+          </div>
+          <div style="opacity:.7;font-size:15px;line-height:1.6">
+            El enlace que usaste no corresponde a ningún evento activo.<br>
+            Verifica el código QR o contacta al organizador.
+          </div>
+        </div>
+      </div>`;
+    throw new Error('evento_no_encontrado');
+  }
+
+  if(data.activo === false){
+    document.getElementById('welcome-modal').classList.add('hide');
+    document.body.innerHTML = `
+      <div style="min-height:100svh;display:flex;align-items:center;justify-content:center;
+        text-align:center;padding:32px;color:#fff;font-family:'Inter',sans-serif">
+        <div>
+          <div style="font-size:54px;margin-bottom:14px">⏳</div>
+          <div style="font-family:'Bebas Neue';font-size:30px;color:#ffd600;margin-bottom:10px">
+            EVENTO NO DISPONIBLE
+          </div>
+          <div style="opacity:.7;font-size:15px;line-height:1.6">
+            Este evento todavía no está activo. Vuelve a intentarlo más tarde.
+          </div>
+        </div>
+      </div>`;
+    throw new Error('evento_inactivo');
+  }
+
+  ST.eventoId = data.id;
+  ST.eventoNombre = data.nombre;
+  LS.set('mxk_evento_slug', slug);
+
+  // Actualizar título visible con el nombre real del evento
+  const titleEl=document.getElementById('ev-title-home');
+  if(titleEl) titleEl.textContent = data.nombre.toUpperCase();
+  const flagsEl=document.getElementById('ev-flags-home');
+  if(flagsEl && !/vs|méxico|mexico/i.test(data.nombre)) flagsEl.textContent='🎉🏆🎊';
+}
 
 // ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async ()=>{
+  try{
+    await resolveEvento();
+  }catch(e){
+    return; // pantalla de error ya se mostró dentro de resolveEvento()
+  }
+
   const saved = LS.get('mxk_v3');
   if(saved?.codigo){
     // Ya hay sesión: saltar el modal de bienvenida e ir directo a su estado
     document.getElementById('welcome-modal').classList.add('hide');
     document.getElementById('s-home').classList.remove('on');
-    const {data} = await _sb.from('participantes').select('*').eq('codigo',saved.codigo).single();
+    const {data} = await _sb.from('participantes').select('*')
+      .eq('evento_id',ST.eventoId).eq('codigo',saved.codigo).single();
     if(data){
       ST.player=data;
       if(data.jugó){ showResult(data); show('s-res'); }
@@ -1568,9 +1632,10 @@ async function doReg(){
   btn.innerHTML='<span class="spin"></span> Registrando…'; btn.disabled=true;
 
   try{
-    // Check duplicado
+    // Check duplicado (dentro del mismo evento)
     const {data:ex}= await _sb.from('participantes')
-      .select('id,codigo,jugó').or(`telefono.eq.${tel},correo.eq.${ema}`).limit(1);
+      .select('id,codigo,jugó').eq('evento_id',ST.eventoId)
+      .or(`telefono.eq.${tel},correo.eq.${ema}`).limit(1);
     if(ex?.length){
       const {data:full}=await _sb.from('participantes').select('*').eq('id',ex[0].id).single();
       ST.player=full; LS.set('mxk_v3',{codigo:full.codigo});
@@ -1581,11 +1646,11 @@ async function doReg(){
     // Crear
     let code=genCode();
     for(let i=0;i<5;i++){
-      const {data:dup}=await _sb.from('participantes').select('id').eq('codigo',code).limit(1);
+      const {data:dup}=await _sb.from('participantes').select('id').eq('evento_id',ST.eventoId).eq('codigo',code).limit(1);
       if(!dup?.length) break; code=genCode();
     }
     const {data:nuevo,error}=await _sb.from('participantes')
-      .insert({codigo:code,nombre:nom,telefono:tel,correo:ema,colonia:dir,acepta_contacto:ok})
+      .insert({evento_id:ST.eventoId,codigo:code,nombre:nom,telefono:tel,correo:ema,colonia:dir,acepta_contacto:ok})
       .select().single();
     if(error) throw error;
     ST.player=nuevo; LS.set('mxk_v3',{codigo:nuevo.codigo});
@@ -1946,9 +2011,9 @@ async function finalizeTrivia(won){
 //  BROADCAST ganador via Supabase Realtime
 // ══════════════════════════════════════════
 function broadcastWinner(player){
-  _sb.channel('winners-live').send({
+  _sb.channel('winners-live-'+ST.eventoId).send({
     type:'broadcast', event:'nuevo_ganador',
-    payload:{ nombre:player.nombre, codigo:player.codigo, ts:Date.now() }
+    payload:{ id:player.id, evento_id:ST.eventoId, nombre:player.nombre, codigo:player.codigo, ts:Date.now() }
   });
 }
 
@@ -1959,27 +2024,74 @@ function showResult(p){
   const bod=document.getElementById('res-body');
   const cod=p.codigo||'-----';
   const won=p.resultado==='ganador';
+  const yaEntregado=p.premio_entregado===true;
+
+  if(won && yaEntregado){
+    // Ya canjeó su regalo — pantalla final de agradecimiento
+    bod.innerHTML=`
+      <div class="res-icon">🙌</div>
+      <div class="res-title win">¡GRACIAS!</div>
+      <p class="res-msg">Tu premio ya fue canjeado con éxito.<br>Mantente al tanto de las diversas actividades del evento.</p>
+      <div class="res-code-label">Tu código:</div>
+      <div class="res-code gray">${cod}</div>
+    `;
+    return;
+  }
 
   bod.innerHTML=won?`
     <div class="res-icon">🏆</div>
-    <div class="res-title win">¡HAS<br>GANADO!</div>
-    <p class="res-msg">¡Felicidades! Eres uno de los ganadores de esta noche.</p>
-    <div class="res-code-label">Tu código ganador:</div>
+    <div class="res-title win">¡FELICIDADES,<br>GANASTE!</div>
+    <p class="res-msg">¡Ganaste en la dinámica! Presenta tu folio al personal del evento.</p>
+    <div class="res-code-label">Tu folio ganador:</div>
     <div class="res-code">${cod}</div>
     <div class="res-claim">
-      📲 Muestra este código al personal del evento.<br>
-      <strong>¡Reclama tu premio ahora!</strong>
+      📲 Muestra este folio al personal del evento.<br>
+      <strong>Una vez que canjees tu regalo, presiona el botón:</strong>
     </div>
+    <button class="btn btn-hero" id="btn-claim" onclick="claimPrize()" style="margin-top:6px">
+      ✅ &nbsp; YA CANJEÉ MI REGALO
+    </button>
   `:`
     <div class="res-icon">😔</div>
     <div class="res-title lose">GRACIAS POR<br>PARTICIPAR</div>
-    <p class="res-msg">Esta vez no ganaste, pero gracias por ser parte de esta increíble noche. ¡Mantente atento a futuros eventos!</p>
+    <p class="res-msg">Esta vez no ganaste, pero gracias por ser parte de esta increíble dinámica. ¡Mantente atento a las diversas actividades del evento!</p>
     <div class="res-code-label">Tu código de participación:</div>
     <div class="res-code gray">${cod}</div>
-    <div style="font-size:14px;opacity:.4;margin-top:12px;padding:14px;background:rgba(255,255,255,.04);border-radius:16px">
-      🇲🇽 ¡Vamos México! ⚽
-    </div>
   `;
+}
+
+// ══════════════════════════════════════════
+//  CANJE DE PREMIO — botón del jugador
+// ══════════════════════════════════════════
+async function claimPrize(){
+  const btn=document.getElementById('btn-claim');
+  if(!btn || btn.disabled) return;
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin white"></span> Confirmando…';
+
+  try{
+    const {data:ok,error}=await _sb.rpc('entregar_premio',{
+      p_participante_id: ST.player.id,
+      p_origen: 'jugador'
+    });
+    if(error) throw error;
+
+    if(ok===false){
+      // Alguien (staff) ya lo había marcado como entregado primero
+      toast('Tu premio ya estaba marcado como entregado ✅');
+    }
+
+    const {data:updated}=await _sb.from('participantes').select('*').eq('id',ST.player.id).single();
+    if(updated){ ST.player=updated; }
+
+    showResult(ST.player);
+    playWin();
+  }catch(e){
+    console.error(e);
+    toast('❌ No se pudo confirmar. Intenta de nuevo.');
+    btn.disabled=false;
+    btn.innerHTML='✅ &nbsp; YA CANJEÉ MI REGALO';
+  }
 }
 
 // ══════════════════════════════════════════
