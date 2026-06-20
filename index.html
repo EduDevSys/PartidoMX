@@ -9,6 +9,7 @@
 <title>🇲🇽 México vs Corea — ¡Gana Premios!</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="themes.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════
@@ -872,7 +873,7 @@ body::before{
 <div id="welcome-modal">
   <div class="wm-floaters" id="wm-floaters"></div>
   <div class="wm-card">
-    <div class="wm-icon">🎲</div>
+    <div class="wm-icon" id="wm-icon-dynamic">🎲</div>
     <h2 class="wm-title">¿ESTÁS LISTO(A)<br>PARA <span>PARTICIPAR?</span></h2>
     <p class="wm-sub">¡Prepárate para probar suerte y ganar increíbles premios esta noche!</p>
     <button class="wm-btn" onclick="closeWelcomeModal()">
@@ -886,7 +887,7 @@ body::before{
   <div class="top-bar">
     <div>
       <div class="match" id="ev-title-home">MÉXICO VS COREA</div>
-      <div class="ev-label">🎉 Dinámica de premios</div>
+      <div class="ev-label" id="ev-chip-text">🎉 Dinámica de premios</div>
     </div>
     <div class="flags" id="ev-flags-home">🇲🇽 🇰🇷</div>
   </div>
@@ -895,7 +896,7 @@ body::before{
       <div class="pdot a"></div><div class="pdot"></div>
       <div class="pdot"></div><div class="pdot"></div>
     </div>
-    <div class="home-ball-row">🎲 ⚽ 🏆</div>
+    <div class="home-ball-row" id="home-ball-row">🎲 ⚽ 🏆</div>
     <h1 class="home-title">PARTICIPA<br>Y GANA<br>PREMIOS</h1>
     <p class="home-sub">Lanza el dado mundialista y descubre si <span>¡eres el ganador!</span></p>
     <div class="home-chips">
@@ -1117,15 +1118,19 @@ body::before{
 
 <!--
   ══════════════════════════════════════════════════════════
-  MÚSICA DE FONDO — archivo de audio propio
+  MÚSICA DE FONDO — se asigna automáticamente por tema
   ══════════════════════════════════════════════════════════
-  Sube tu archivo de audio (mp3/ogg) a la misma carpeta del
-  proyecto y reemplaza "musica-fondo.mp3" por el nombre real
-  de tu archivo. Se reproduce en loop automáticamente al
-  cerrar el modal de bienvenida.
+  El archivo real se inyecta en tiempo de ejecución desde
+  themes.js, según el tema detectado para el evento (deportivo,
+  lucha, o genérico como respaldo). Sube los archivos
+  correspondientes (musica-deportivo.mp3, musica-lucha.mp3,
+  musica-generica.mp3) a la misma carpeta del proyecto.
+  Si el archivo del tema no existe, cae automáticamente al
+  genérico; si tampoco existe, se usa el generador de música
+  sintética como último respaldo.
 -->
 <audio id="bg-music" loop preload="auto" style="display:none">
-  <source src="musica-fondo.mp3" type="audio/mpeg">
+  <source src="musica-generica.mp3" type="audio/mpeg">
 </audio>
 
 <script>
@@ -1419,7 +1424,7 @@ const LS={
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
-const ST={ player:null, eventoId:null, eventoNombre:'' };
+const ST={ player:null, eventoId:null, eventoNombre:'', theme:null };
 
 // ══════════════════════════════════════════
 //  RESOLVER EVENTO desde la URL (?evento=slug)
@@ -1471,11 +1476,32 @@ async function resolveEvento(){
   ST.eventoNombre = data.nombre;
   LS.set('mxk_evento_slug', slug);
 
+  // ── Aplicar tema (emojis, colores, música) según el nombre del evento ──
+  ST.theme = initTheme(data.nombre, { musicElId:'bg-music' });
+  applyThemeContent(ST.theme);
+
   // Actualizar título visible con el nombre real del evento
   const titleEl=document.getElementById('ev-title-home');
   if(titleEl) titleEl.textContent = data.nombre.toUpperCase();
+}
+
+/**
+ * Aplica el tema detectado a todos los puntos de la UI que usan
+ * emojis/textos específicos de temática (banderas, íconos de
+ * bienvenida, cara de la moneda, etc.)
+ */
+function applyThemeContent(theme){
   const flagsEl=document.getElementById('ev-flags-home');
-  if(flagsEl && !/vs|méxico|mexico/i.test(data.nombre)) flagsEl.textContent='🎉🏆🎊';
+  if(flagsEl) flagsEl.textContent = theme.flags;
+
+  const chipEl=document.getElementById('ev-chip-text');
+  if(chipEl) chipEl.textContent = theme.chipText;
+
+  const heroRow=document.getElementById('home-ball-row');
+  if(heroRow) heroRow.textContent = theme.heroEmojis.slice(0,3).join(' ');
+
+  const wmIcon=document.getElementById('wm-icon-dynamic');
+  if(wmIcon) wmIcon.textContent = theme.welcomeIcon;
 }
 
 // ══════════════════════════════════════════
@@ -1531,14 +1557,17 @@ function closeWelcomeModal(){
 // ══════════════════════════════════════════
 //  EMOJIS FLOTANTES DENTRO DEL MODAL DE BIENVENIDA
 // ══════════════════════════════════════════
-const WM_FLOAT_LIST=['⚽','🏆','🎉','🔥','🌟','🇲🇽','🎲','⭐'];
+function getThemeFloaters(){
+  return ST.theme?.welcomeFloaters || THEMES.generico.welcomeFloaters;
+}
 let wmFloaterTimer=null;
 function spawnWmFloater(){
   const cont=document.getElementById('wm-floaters');
   if(!cont) return;
+  const list=getThemeFloaters();
   const el=document.createElement('div');
   el.className='wm-float-emoji';
-  el.textContent=WM_FLOAT_LIST[~~(Math.random()*WM_FLOAT_LIST.length)];
+  el.textContent=list[~~(Math.random()*list.length)];
   el.style.left=(Math.random()*92+2)+'vw';
   const dur=6+Math.random()*5;
   el.style.animationDuration=dur+'s';
@@ -1560,13 +1589,16 @@ function stopWmFloaters(){
 // ══════════════════════════════════════════
 //  EMOJIS FLOTANTES DE FONDO
 // ══════════════════════════════════════════
-const FLOAT_EMOJI_LIST=['⚽','🏆','🎉','🔥','🌟','🇲🇽','⭐','🎊'];
+function getThemeHeroEmojis(){
+  return ST.theme?.heroEmojis || THEMES.generico.heroEmojis;
+}
 function spawnFloatingEmoji(){
   const cont=document.getElementById('floating-emojis');
   if(!cont) return;
+  const list=getThemeHeroEmojis();
   const el=document.createElement('div');
   el.className='float-emoji';
-  el.textContent=FLOAT_EMOJI_LIST[~~(Math.random()*FLOAT_EMOJI_LIST.length)];
+  el.textContent=list[~~(Math.random()*list.length)];
   const startX=Math.random()*94+2; // % desde la izquierda
   const dur=8+Math.random()*7;     // 8-15s
   el.style.left=startX+'vw';
@@ -2025,11 +2057,12 @@ function showResult(p){
   const cod=p.codigo||'-----';
   const won=p.resultado==='ganador';
   const yaEntregado=p.premio_entregado===true;
+  const th=ST.theme||THEMES.generico;
 
   if(won && yaEntregado){
     // Ya canjeó su regalo — pantalla final de agradecimiento
     bod.innerHTML=`
-      <div class="res-icon">🙌</div>
+      <div class="res-icon">${th.claimedIcon}</div>
       <div class="res-title win">¡GRACIAS!</div>
       <p class="res-msg">Tu premio ya fue canjeado con éxito.<br>Mantente al tanto de las diversas actividades del evento.</p>
       <div class="res-code-label">Tu código:</div>
@@ -2039,7 +2072,7 @@ function showResult(p){
   }
 
   bod.innerHTML=won?`
-    <div class="res-icon">🏆</div>
+    <div class="res-icon">${th.winIcon}</div>
     <div class="res-title win">¡FELICIDADES,<br>GANASTE!</div>
     <p class="res-msg">¡Ganaste en la dinámica! Presenta tu folio al personal del evento.</p>
     <div class="res-code-label">Tu folio ganador:</div>
@@ -2052,7 +2085,7 @@ function showResult(p){
       ✅ &nbsp; YA CANJEÉ MI REGALO
     </button>
   `:`
-    <div class="res-icon">😔</div>
+    <div class="res-icon">${th.loseIcon}</div>
     <div class="res-title lose">GRACIAS POR<br>PARTICIPAR</div>
     <p class="res-msg">Esta vez no ganaste, pero gracias por ser parte de esta increíble dinámica. ¡Mantente atento a las diversas actividades del evento!</p>
     <div class="res-code-label">Tu código de participación:</div>

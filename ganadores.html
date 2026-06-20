@@ -7,6 +7,7 @@
 <title>🏆 Tablero de Ganadores — México vs Corea</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
+<script src="themes.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ════════════════════════════════════════════
@@ -258,7 +259,7 @@ body::before{display:none}
   <div class="hdr">
     <div class="hdr-left">
       <div class="hdr-title">🏆 TABLERO DE GANADORES</div>
-      <div class="hdr-sub">México vs Corea — Dinámica de premios en vivo</div>
+      <div class="hdr-sub" id="hdr-sub-text">México vs Corea — Dinámica de premios en vivo</div>
     </div>
     <div class="hdr-right">
       <div class="live-pill"><div class="live-dot"></div>EN VIVO</div>
@@ -314,11 +315,7 @@ body::before{display:none}
   <!-- TICKER -->
   <div class="ticker">
     <div class="ticker-inner" id="ticker-inner">
-      <span class="tick-item">⚽ MÉXICO VS COREA <span>·</span> DINÁMICA DE PREMIOS</span>
-      <span class="tick-item">🏆 ¿SERÁS EL SIGUIENTE GANADOR? <span>·</span> REGISTRATE YA</span>
-      <span class="tick-item">🎲 LANZA EL DADO MUNDIALISTA <span>·</span> GANA INCREÍBLES PREMIOS</span>
-      <span class="tick-item">👕 PLAYERAS Y MUCHOS PREMIOS MÁS <span>·</span> SOLO HOY</span>
-      <span class="tick-item">⚽ MÉXICO VS COREA <span>·</span> DINÁMICA DE PREMIOS</span>
+      <span class="tick-item">🎉 DINÁMICA DE PREMIOS <span>·</span> EN VIVO</span>
     </div>
   </div>
 </div>
@@ -351,18 +348,21 @@ body::before{display:none}
 
 <!--
   ══════════════════════════════════════════════════════════
-  ARCHIVOS DE AUDIO — el operador los sube a la misma carpeta
+  ARCHIVOS DE AUDIO — se asignan automáticamente por tema
   ══════════════════════════════════════════════════════════
-  - musica-fondo.mp3  → música de fondo en loop continuo
-  - sonido-ganador.mp3 → se reproduce cada vez que alguien gana
-  Si los archivos no existen, el sistema usa automáticamente
-  un generador de música sintética como respaldo.
+  themes.js inyecta el archivo correcto según el tema detectado
+  para el evento (deportivo, lucha, o genérico como respaldo):
+  - musica-deportivo.mp3 / musica-lucha.mp3 / musica-generica.mp3
+  - sonido-ganador-deportivo.mp3 / -lucha.mp3 / -generico.mp3
+  Sube los archivos correspondientes a la misma carpeta del
+  proyecto. Si un archivo no existe, cae al genérico; si
+  tampoco existe, se usa el generador sintético de respaldo.
 -->
 <audio id="tablero-music" loop preload="auto" style="display:none">
-  <source src="musica-fondo.mp3" type="audio/mpeg">
+  <source src="musica-generica.mp3" type="audio/mpeg">
 </audio>
 <audio id="tablero-winsound" preload="auto" style="display:none">
-  <source src="sonido-ganador.mp3" type="audio/mpeg">
+  <source src="sonido-ganador-generico.mp3" type="audio/mpeg">
 </audio>
 
 <script>
@@ -653,6 +653,7 @@ let winners = [];
 let statsData = {};
 let EVENTO_ID = null;
 let EVENTO_NOMBRE = '';
+let EVENTO_THEME = null;
 
 // ── Resolver evento desde la URL (?evento=slug) ──
 async function resolveEventoTablero(){
@@ -681,8 +682,35 @@ async function resolveEventoTablero(){
   EVENTO_ID = data.id;
   EVENTO_NOMBRE = data.nombre;
 
+  // ── Aplicar tema (emojis, música, sonido de victoria) ──
+  // skipColors:true porque esta pantalla mantiene SIEMPRE su
+  // paleta de alto contraste calibrada para uso con luz de día;
+  // el tema solo aporta música, emojis y textos, nunca colores.
+  EVENTO_THEME = initTheme(data.nombre, {
+    musicElId:'tablero-music',
+    winSoundElId:'tablero-winsound',
+    skipColors:true
+  });
+
   const titleEl=document.querySelector('.hdr-title');
   if(titleEl) titleEl.textContent = `🏆 TABLERO — ${data.nombre.toUpperCase()}`;
+
+  document.title = `🏆 Tablero de Ganadores — ${data.nombre}`;
+  const subEl=document.getElementById('hdr-sub-text');
+  if(subEl) subEl.textContent = `${data.nombre} — Dinámica de premios en vivo`;
+
+  // Ticker dinámico con el nombre real del evento
+  const tickerEl=document.getElementById('ticker-inner');
+  if(tickerEl){
+    const nombreUp = data.nombre.toUpperCase();
+    const items = [
+      `${EVENTO_THEME.homeIcon} ${nombreUp} <span>·</span> DINÁMICA DE PREMIOS`,
+      `🏆 ¿SERÁS EL SIGUIENTE GANADOR? <span>·</span> REGÍSTRATE YA`,
+      `🪙 PRUEBA TU SUERTE <span>·</span> GANA INCREÍBLES PREMIOS`,
+      `${EVENTO_THEME.homeIcon} ${nombreUp} <span>·</span> DINÁMICA DE PREMIOS`,
+    ];
+    tickerEl.innerHTML = items.map(t=>`<span class="tick-item">${t}</span>`).join('');
+  }
 }
 
 // ── Init ──
