@@ -115,6 +115,28 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 }
 .btn-reset-all:hover{background:rgba(255,23,68,.18);border-color:var(--rojo)}
 
+/* ── Zona de cierre del evento (no destructiva) ── */
+.finalize-zone{
+  border-top:1px dashed rgba(255,214,0,.3);
+  padding-top:12px;margin-top:12px;
+}
+.finalize-zone-label{
+  font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(255,214,0,.7);font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;
+}
+.btn-finalize{
+  width:100%;padding:11px;border-radius:10px;
+  background:rgba(255,214,0,.08);border:1.5px solid rgba(255,214,0,.4);
+  color:var(--oro);font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .18s;margin-bottom:8px;
+}
+.btn-finalize:hover{background:rgba(255,214,0,.18);border-color:var(--oro)}
+.btn-finalize.active{
+  background:rgba(0,200,83,.12);border-color:rgba(0,200,83,.5);color:var(--verde2);
+}
+.btn-finalize.active:hover{background:rgba(0,200,83,.2)}
+
 /* ── Control de probabilidad de ganar ── */
 .prob-card{
   background:var(--g2);border:1px solid var(--borde);
@@ -375,6 +397,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
     <div class="sb-footer">
       <div class="sb-user" id="sb-email">—</div>
       <button class="btn-out" onclick="aOut()">⏻ Cerrar sesión</button>
+      <div class="finalize-zone">
+        <div class="finalize-zone-label">🏁 Cierre del evento</div>
+        <button class="btn-finalize" id="btn-finalize" onclick="toggleFinalizado()">📢 Finalizar dinámica</button>
+      </div>
       <div class="danger-zone">
         <div class="danger-zone-label">⚠️ Zona de peligro</div>
         <button class="btn-reset-all" onclick="openResetModal()">🗑️ Reiniciar dinámica</button>
@@ -620,6 +646,46 @@ async function togglePause(){
   toast(next ? '⏸ Dinámica pausada — nadie podrá ganar hasta reanudar' : '▶ Dinámica reanudada');
 }
 
+// ══ FINALIZAR DINÁMICA (mensaje de despedida en el tablero) ══
+let dinamicaFinalizada = false;
+
+async function loadFinalizadoState(){
+  const {data} = await _sb.from('config_evento').select('finalizado').eq('evento_id',ST.eventoId).single();
+  dinamicaFinalizada = data?.finalizado === true;
+  renderFinalizadoUI();
+}
+
+function renderFinalizadoUI(){
+  const btnEl = document.getElementById('btn-finalize');
+  if(!btnEl) return;
+  if(dinamicaFinalizada){
+    btnEl.textContent='↩️ Reactivar tablero';
+    btnEl.classList.add('active');
+  } else {
+    btnEl.textContent='📢 Finalizar dinámica';
+    btnEl.classList.remove('active');
+  }
+}
+
+async function toggleFinalizado(){
+  const next = !dinamicaFinalizada;
+  if(next){
+    const ev = ST.eventos.find(e=>e.id===ST.eventoId);
+    const ok = confirm(
+      `¿Finalizar la dinámica de "${ev?.nombre||'este evento'}"?\n\n` +
+      `El tablero de ganadores mostrará el mensaje de despedida ` +
+      `en vez del spotlight y la tabla. Podrás reactivarlo en ` +
+      `cualquier momento desde este mismo botón.`
+    );
+    if(!ok) return;
+  }
+  const {error} = await _sb.rpc('set_finalizado',{p_evento_id:ST.eventoId,p_finalizado:next});
+  if(error){ toast('❌ Error al cambiar el estado'); return; }
+  dinamicaFinalizada = next;
+  renderFinalizadoUI();
+  toast(next ? '📢 Dinámica finalizada — el tablero muestra el mensaje de despedida' : '↩️ Tablero reactivado');
+}
+
 // ══ PROBABILIDAD DE GANAR ══
 let probabilidadActual = 0.20;
 let probSaveTimer = null;
@@ -760,7 +826,7 @@ async function initApp(){
     toast('⚠️ No hay eventos configurados. Crea uno para comenzar.');
     return;
   }
-  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadProbState()]);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState()]);
   subscribeRT();
 }
 
@@ -793,7 +859,7 @@ async function onEventoChange(eventoId){
   ST.eventoSlug = ev.slug;
   localStorage.setItem('admin_evento_id', ev.id);
   toast(`📅 Evento activo: ${ev.nombre}`);
-  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadProbState()]);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState()]);
   subscribeRT();
 }
 
@@ -1125,6 +1191,8 @@ function subscribeRT(){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento',filter:`evento_id=eq.${ST.eventoId}`},(pl)=>{
       dinamicaPausada = pl.new.pausado === true;
       renderPauseUI();
+      dinamicaFinalizada = pl.new.finalizado === true;
+      renderFinalizadoUI();
       if(pl.new.probabilidad_ganar != null){
         probabilidadActual = pl.new.probabilidad_ganar;
         renderProbUI();

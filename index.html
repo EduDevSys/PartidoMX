@@ -753,12 +753,13 @@ body::before{
 /* ══════════════════════════════════════════
    SCREEN 6: RESULTADO
 ══════════════════════════════════════════ */
-#s-res{background:transparent;justify-content:center;min-height:100svh}
+#s-res{background:transparent;min-height:100svh}
 .res-body{
   flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:28px 22px;text-align:center;
+  align-items:center;justify-content:flex-start;
+  padding:20px 22px 32px;text-align:center;
   max-width:480px;margin:0 auto;width:100%;
+  overflow-y:auto;
 }
 .res-icon{font-size:clamp(80px,22vw,120px);margin-bottom:16px;animation:resultpop .6s cubic-bezier(.175,.885,.32,1.275) both}
 .res-title{
@@ -790,6 +791,21 @@ body::before{
   line-height:1.6;margin-bottom:24px;width:100%;
 }
 .res-claim strong{color:var(--oro)}
+
+/* Botón de canje SIEMPRE visible arriba, sin necesidad de scroll */
+#btn-claim{
+  position:sticky;top:8px;z-index:50;
+  margin-bottom:6px;
+  box-shadow:0 8px 30px rgba(0,200,83,.5),0 2px 0 rgba(255,255,255,.3) inset;
+}
+
+.res-winner-name{
+  font-family:'Bebas Neue';
+  font-size:clamp(22px,6.5vw,34px);
+  letter-spacing:1px;color:#fff;
+  margin-bottom:14px;
+  text-shadow:0 0 14px rgba(255,214,0,.4);
+}
 
 /* ══════════════════════════════════════════
    PROGRESS DOTS
@@ -962,8 +978,8 @@ body::before{
 <div id="s-code" class="scr">
   <div class="top-bar">
     <div>
-      <div class="match">TU CÓDIGO</div>
-      <div class="ev-label">🎯 Guárdalo</div>
+      <div class="match">¡LISTO!</div>
+      <div class="ev-label">🎯 Preparando tu turno</div>
     </div>
     <div class="flags">🇲🇽 🇰🇷</div>
   </div>
@@ -973,10 +989,8 @@ body::before{
       <div class="pdot a"></div><div class="pdot"></div>
     </div>
     <div class="code-name" id="code-pname">¡Hola!</div>
-    <div class="code-title">Tu código de participación</div>
-    <div class="code-sub">Anótalo o toma una captura de pantalla</div>
-    <div class="code-display" id="d-code">-----</div>
-    <div class="code-note">Muéstralo si ganas 🏆<br>El juego comenzará automáticamente en:</div>
+    <div class="code-title">¡Ya estás registrado!</div>
+    <div class="code-sub">Tu código de participación aparecerá al final, junto con tu resultado.</div>
     <div class="auto-counter">
       <div class="auto-counter-label">⏱ El juego empieza en</div>
       <div class="auto-counter-num" id="auto-count">3</div>
@@ -1696,7 +1710,6 @@ async function doReg(){
 }
 
 function updCode(){
-  document.getElementById('d-code').textContent = ST.player.codigo;
   document.getElementById('code-pname').textContent =
     '¡Hola, '+ ST.player.nombre.split(' ')[0]+'! 👋';
   document.getElementById('g-code-badge').textContent = 'CÓDIGO: '+ST.player.codigo;
@@ -2058,12 +2071,14 @@ function showResult(p){
   const won=p.resultado==='ganador';
   const yaEntregado=p.premio_entregado===true;
   const th=ST.theme||THEMES.generico;
+  const nombreGanador=esc(p.nombre||'');
 
   if(won && yaEntregado){
     // Ya canjeó su regalo — pantalla final de agradecimiento
     bod.innerHTML=`
       <div class="res-icon">${th.claimedIcon}</div>
       <div class="res-title win">¡GRACIAS!</div>
+      <div class="res-winner-name">${nombreGanador}</div>
       <p class="res-msg">Tu premio ya fue canjeado con éxito.<br>Mantente al tanto de las diversas actividades del evento.</p>
       <div class="res-code-label">Tu código:</div>
       <div class="res-code gray">${cod}</div>
@@ -2072,18 +2087,19 @@ function showResult(p){
   }
 
   bod.innerHTML=won?`
-    <div class="res-icon">${th.winIcon}</div>
+    <button class="btn btn-hero" id="btn-claim" onclick="claimPrize()">
+      ✅ &nbsp; YA CANJEÉ MI REGALO
+    </button>
+    <div class="res-icon" style="margin-top:18px">${th.winIcon}</div>
     <div class="res-title win">¡FELICIDADES,<br>GANASTE!</div>
+    <div class="res-winner-name">${nombreGanador}</div>
     <p class="res-msg">¡Ganaste en la dinámica! Presenta tu folio al personal del evento.</p>
     <div class="res-code-label">Tu folio ganador:</div>
     <div class="res-code">${cod}</div>
     <div class="res-claim">
       📲 Muestra este folio al personal del evento.<br>
-      <strong>Una vez que canjees tu regalo, presiona el botón:</strong>
+      <strong>Una vez que canjees tu regalo, presiona el botón de arriba.</strong>
     </div>
-    <button class="btn btn-hero" id="btn-claim" onclick="claimPrize()" style="margin-top:6px">
-      ✅ &nbsp; YA CANJEÉ MI REGALO
-    </button>
   `:`
     <div class="res-icon">${th.loseIcon}</div>
     <div class="res-title lose">GRACIAS POR<br>PARTICIPAR</div>

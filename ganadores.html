@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#006400">
 <title>🏆 Tablero de Ganadores — México vs Corea</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="config.js"></script>
 <script src="themes.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -142,6 +143,49 @@ body::before{display:none}
 }
 .spot-time{font-size:clamp(11px,1.3vw,14px);color:var(--txt3);margin-top:2px;font-weight:700}
 
+/* ── INVITACIÓN QR — llamativa, con flash ── */
+.qr-invite{
+  display:none;flex-direction:column;align-items:center;
+  text-align:center;gap:14px;
+  animation:qrFadeIn .5s ease both;
+}
+@keyframes qrFadeIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.qr-invite-text{
+  font-family:'Bebas Neue';
+  font-size:clamp(28px,5.5vw,46px);
+  letter-spacing:2px;color:var(--verde);
+  animation:qrFlashText 1.1s ease-in-out infinite;
+}
+@keyframes qrFlashText{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.55;transform:scale(1.04)}
+}
+.qr-invite-box{
+  width:clamp(180px,26vw,260px);
+  height:clamp(180px,26vw,260px);
+  background:#fff;
+  border-radius:24px;
+  display:flex;align-items:center;justify-content:center;
+  padding:14px;
+  animation:qrPulseBorder 1.1s ease-in-out infinite;
+  position:relative;
+}
+@keyframes qrPulseBorder{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,100,0,.5), 0 8px 30px rgba(0,0,0,.15)}
+  50%{box-shadow:0 0 0 14px rgba(0,100,0,0), 0 8px 30px rgba(0,0,0,.15)}
+}
+.qr-invite-box img,
+.qr-invite-box canvas,
+.qr-invite-box svg{
+  width:100%;height:100%;object-fit:contain;
+}
+.qr-invite-box .qr-placeholder{
+  font-size:13px;color:var(--txt3);font-weight:700;line-height:1.5;padding:10px;
+}
+.qr-invite-sub{
+  font-size:clamp(13px,2vw,17px);color:var(--txt3);font-weight:700;
+}
+
 /* ── RESPONSIVE móvil ── */
 @media(max-width:760px){
   html,body{overflow-y:auto;height:auto}
@@ -201,6 +245,36 @@ body::before{display:none}
 .cel-name{font-family:'Bebas Neue';font-size:clamp(52px,10vw,110px);line-height:1;color:#fff;word-break:break-word;padding:0 20px;text-shadow:0 4px 10px rgba(0,0,0,.4)}
 .cel-sub{font-size:clamp(18px,2.5vw,26px);color:rgba(255,255,255,.95);font-weight:900}
 .cel-code{font-family:'Bebas Neue';font-size:clamp(28px,5vw,60px);letter-spacing:12px;color:#fff;background:var(--verde2);padding:8px 24px;border-radius:16px}
+
+/* ── OVERLAY: DINÁMICA FINALIZADA ── */
+#finished-overlay{
+  display:none;position:fixed;inset:0;z-index:1500;
+  background:linear-gradient(135deg,var(--verde),#003300);
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:22px;text-align:center;padding:32px;
+}
+#finished-overlay.on{display:flex}
+.fin-icon{
+  font-size:clamp(70px,13vw,130px);
+  animation:finBounce 2.2s ease-in-out infinite;
+}
+@keyframes finBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.fin-title{
+  font-family:'Bebas Neue';font-size:clamp(38px,7.5vw,80px);
+  line-height:1.1;color:#fff;
+  text-shadow:0 4px 12px rgba(0,0,0,.35);
+}
+.fin-sub{
+  font-size:clamp(15px,2.4vw,24px);font-weight:800;
+  letter-spacing:1.5px;color:#fff;
+  background:rgba(255,255,255,.15);
+  padding:10px 26px;border-radius:50px;
+}
+.fin-bye{
+  font-family:'Bebas Neue';font-size:clamp(22px,4vw,38px);
+  letter-spacing:2px;color:var(--oro2);
+  text-shadow:0 2px 6px rgba(0,0,0,.3);
+}
 
 /* ── STAFF MODE ── */
 .staff-toggle{position:fixed;bottom:16px;right:16px;z-index:500;background:rgba(0,0,0,.12);border:2px solid rgba(0,0,0,.2);color:rgba(0,0,0,.45);width:44px;height:44px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
@@ -281,7 +355,7 @@ body::before{display:none}
 
   <!-- MAIN -->
   <div class="main">
-    <!-- SPOTLIGHT -->
+    <!-- SPOTLIGHT (alterna entre último ganador e invitación QR) -->
     <div class="spotlight" id="spotlight">
       <div class="spotlight-idle" id="spot-idle">
         <div class="si-icon">⚽</div>
@@ -294,6 +368,15 @@ body::before{display:none}
         <div class="spot-code" id="sw-code">-----</div>
         <div class="spot-badge">¡Premio Confirmado!</div>
         <div class="spot-time" id="sw-time"></div>
+      </div>
+
+      <!-- INVITACIÓN QR (se alterna con el spotlight cada cierto tiempo) -->
+      <div class="qr-invite" id="qr-invite" style="display:none">
+        <div class="qr-invite-text">📲 ¡ESCANEA Y PARTICIPA!</div>
+        <div class="qr-invite-box" id="qr-invite-box">
+          <!-- el QR se inserta aquí dinámicamente -->
+        </div>
+        <div class="qr-invite-sub">Apunta tu cámara al código</div>
       </div>
     </div>
 
@@ -326,6 +409,14 @@ body::before{display:none}
   <div class="cel-name" id="cel-name">NOMBRE</div>
   <div class="cel-sub">¡NUEVO GANADOR!</div>
   <div class="cel-code" id="cel-code">-----</div>
+</div>
+
+<!-- OVERLAY: DINÁMICA FINALIZADA -->
+<div id="finished-overlay">
+  <div class="fin-icon">🙌</div>
+  <div class="fin-title">¡GRACIAS A TODOS<br>POR PARTICIPAR!</div>
+  <div class="fin-sub">MANTENTE AL TANTO DE LOS SIGUIENTES EVENTOS</div>
+  <div class="fin-bye">NOS VEMOS EN LA PRÓXIMA 🎉</div>
 </div>
 
 <button id="music-toggle2" onclick="toggleMusic2()" style="position:fixed;bottom:16px;left:16px;z-index:500;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.6);width:44px;height:44px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(12px)">🔊</button>
@@ -651,14 +742,17 @@ function doConfetti(){
 // ── State ──
 let winners = [];
 let statsData = {};
+let totalGanadoresReal = 0;  // fuente de verdad única: conteo exacto de la BD
 let EVENTO_ID = null;
 let EVENTO_NOMBRE = '';
+let EVENTO_SLUG = null;
 let EVENTO_THEME = null;
 
 // ── Resolver evento desde la URL (?evento=slug) ──
 async function resolveEventoTablero(){
   const params = new URLSearchParams(location.search);
   const slug = params.get('evento') || 'mx-corea';
+  EVENTO_SLUG = slug;
 
   const {data, error} = await _sb.from('eventos').select('id,nombre,activo').eq('slug',slug).single();
 
@@ -713,16 +807,145 @@ async function resolveEventoTablero(){
   }
 }
 
+// ── DINÁMICA FINALIZADA: mensaje de despedida ──
+let dinamicaFinalizadaTablero = false;
+
+async function checkFinalizado(){
+  const {data} = await _sb.from('config_evento').select('finalizado').eq('evento_id',EVENTO_ID).single();
+  dinamicaFinalizadaTablero = data?.finalizado === true;
+  renderFinalizadoOverlay();
+
+  // Escucha cambios en tiempo real para mostrar/ocultar el
+  // mensaje de despedida sin necesidad de recargar la página.
+  _sb.channel('finalizado-'+EVENTO_ID)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento',filter:`evento_id=eq.${EVENTO_ID}`},(pl)=>{
+      const next = pl.new.finalizado === true;
+      if(next !== dinamicaFinalizadaTablero){
+        dinamicaFinalizadaTablero = next;
+        renderFinalizadoOverlay();
+        if(!next){
+          // Si se reactiva el tablero, carga todo lo que se omitió al inicio
+          loadInitial();
+          subscribeRealtime();
+          generateInviteQR();
+          startSpotlightRotation();
+        }
+      }
+    })
+    .subscribe();
+}
+
+function renderFinalizadoOverlay(){
+  const el=document.getElementById('finished-overlay');
+  if(!el) return;
+  el.classList.toggle('on', dinamicaFinalizadaTablero);
+  if(dinamicaFinalizadaTablero){
+    stopMusic2();
+    clearInterval(spotlightRotationTimer);
+  }
+}
+
 // ── Init ──
 window.addEventListener('DOMContentLoaded', async()=>{
   try{
     await resolveEventoTablero();
   }catch(e){ return; }
 
+  await checkFinalizado();
+  if(dinamicaFinalizadaTablero) return; // no carga nada más si ya está cerrada
+
   await loadInitial();
   subscribeRealtime();
+  generateInviteQR();
+  startSpotlightRotation();
   setInterval(refreshStats,15000);
+  setInterval(refreshTimeDisplays,20000);
 });
+
+/**
+ * Genera el código QR que invita a participar, apuntando siempre
+ * a la URL correcta del evento actual (index.html?evento=slug).
+ * Usa la librería qrcode.js (CDN); si por alguna razón no carga
+ * (sin internet en el lugar del evento), muestra un texto de
+ * respaldo con la URL en texto plano para que el staff pueda
+ * compartirla manualmente.
+ */
+function generateInviteQR(){
+  const box=document.getElementById('qr-invite-box');
+  if(!box) return;
+
+  const url = `${location.origin}${location.pathname.replace('ganadores.html','index.html')}?evento=${encodeURIComponent(EVENTO_SLUG)}`;
+
+  if(typeof QRCode === 'undefined'){
+    box.innerHTML = `<div class="qr-placeholder">📲<br>${esc(url)}</div>`;
+    return;
+  }
+
+  QRCode.toCanvas(url, { width: 280, margin: 1, color:{ dark:'#0a150a', light:'#ffffff' } }, (err, canvas)=>{
+    if(err){
+      box.innerHTML = `<div class="qr-placeholder">📲<br>${esc(url)}</div>`;
+      return;
+    }
+    box.innerHTML='';
+    box.appendChild(canvas);
+  });
+}
+
+/**
+ * Alterna automáticamente el panel del spotlight entre mostrar
+ * al último ganador y mostrar la invitación QR, dándole
+ * protagonismo a ambos por turnos en vez de competir por espacio.
+ * Si todavía no hay ningún ganador, el QR se muestra de forma
+ * más prolongada para incentivar el primer registro.
+ */
+let spotlightRotationTimer=null;
+let spotlightShowingQR=false;
+
+function startSpotlightRotation(){
+  clearInterval(spotlightRotationTimer);
+  spotlightRotationTimer=setInterval(()=>{
+    spotlightShowingQR = !spotlightShowingQR;
+    renderSpotlightRotation();
+  }, 12000);
+}
+
+function renderSpotlightRotation(){
+  const idleEl=document.getElementById('spot-idle');
+  const winnerEl=document.getElementById('spot-winner');
+  const qrEl=document.getElementById('qr-invite');
+
+  if(spotlightShowingQR){
+    idleEl.style.display='none';
+    winnerEl.style.display='none';
+    qrEl.style.display='flex';
+  } else {
+    qrEl.style.display='none';
+    if(winners.length){
+      winnerEl.style.display='flex';
+      idleEl.style.display='none';
+    } else {
+      idleEl.style.display='block';
+      winnerEl.style.display='none';
+    }
+  }
+}
+
+/**
+ * Actualiza solo los textos "hace X tiempo" (en la tabla y en el
+ * spotlight) sin reconstruir todo el HTML — evita que la pantalla
+ * se quede mostrando "hace 1 minuto" indefinidamente hasta que
+ * algo más dispare un re-render completo.
+ */
+function refreshTimeDisplays(){
+  winners.forEach(w=>{
+    const el=document.querySelector(`#wr-${w.codigo} .wr-time`);
+    if(el) el.textContent = timeAgo(w.ts);
+  });
+  if(winners[0]){
+    const swTime=document.getElementById('sw-time');
+    if(swTime && swTime.offsetParent !== null) swTime.textContent = '🕒 '+timeAgo(winners[0].ts);
+  }
+}
 
 async function loadInitial(){
   const [{count:parts},{count:wins}] = await Promise.all([
@@ -758,6 +981,13 @@ async function refreshStats(){
 function updateStats({parts,wins}){
   document.getElementById('st-parts').textContent=parts;
   document.getElementById('st-win').textContent=wins;
+  totalGanadoresReal = wins;
+  // Mantiene el contador de la tabla sincronizado con la misma
+  // fuente de verdad que la tarjeta de estadísticas, en vez de
+  // depender del tamaño del array local (que solo guarda los
+  // últimos 50 ganadores cargados).
+  const countEl=document.getElementById('wt-count');
+  if(countEl) countEl.textContent = wins+' ganador'+(wins===1?'':'es');
 }
 
 // ── Realtime subscription ──
@@ -802,6 +1032,13 @@ function subscribeRealtime(){
 }
 
 function onNewWinner(winner){
+  // Blindaje contra duplicados: el mismo ganador puede llegar casi
+  // simultáneamente por el canal de broadcast Y por postgres_changes
+  // (dos rutas distintas notificando el mismo evento). Se verifica
+  // aquí, justo antes de insertar, para evitar que ambas rutas pasen
+  // la validación si llegan en una ventana muy cercana.
+  if(winners.find(w=>w.codigo===winner.codigo)) return;
+
   winners.unshift(winner);
   renderTable();
   showSpotlight(winner, true);
@@ -815,6 +1052,13 @@ function onNewWinner(winner){
 // ── Spotlight ──
 function showSpotlight(winner, isNew=false){
   if(!winner) return;
+  if(isNew){
+    // Un ganador nuevo siempre interrumpe el QR y reinicia el ciclo
+    // de rotación, para que la celebración nunca quede tapada.
+    spotlightShowingQR = false;
+    document.getElementById('qr-invite').style.display='none';
+    startSpotlightRotation();
+  }
   document.getElementById('spot-idle').style.display='none';
   const sw=document.getElementById('spot-winner');
   sw.style.display='flex';
@@ -828,7 +1072,6 @@ function showSpotlight(winner, isNew=false){
 const EMOJIS=['🥇','🥈','🥉','🎖️','⭐','💫','🌟','✨','🏅','🎯'];
 function renderTable(){
   const wrap=document.getElementById('wt-wrap');
-  document.getElementById('wt-count').textContent=winners.length+' ganador'+(winners.length===1?'':'es');
   if(!winners.length){
     wrap.innerHTML='<div class="wt-empty" id="wt-empty"><div class="wt-empty-icon">🎲</div><div class="wt-empty-text">Aún no hay ganadores.<br>¡Sé el primero!</div></div>';
     return;
