@@ -855,10 +855,10 @@ window.addEventListener('DOMContentLoaded', async()=>{
   if(dinamicaFinalizadaTablero) return; // no carga nada más si ya está cerrada
 
   await loadInitial();
-  subscribeRealtime();
+  subscribeRealtime();   // secundario: instantáneo si funciona
+  startPolling();        // primario: garantiza actualización sin depender de websockets
   generateInviteQR();
   startSpotlightRotation();
-  setInterval(refreshStats,15000);
   setInterval(refreshTimeDisplays,20000);
 });
 
@@ -990,9 +990,87 @@ function updateStats({parts,wins}){
   if(countEl) countEl.textContent = wins+' ganador'+(wins===1?'':'es');
 }
 
-// ── Realtime subscription ──
+// ── Sistema de actualización ──────────────────────────────
+//
+// El tablero usa POLLING ACTIVO como mecanismo principal:
+// cada 5 segundos consulta la base de datos directamente y
+// compara el resultado con el estado actual. Esto garantiza
+// que el tablero se actualice sin F5 aunque Supabase
+// Realtime falle (requiere REPLICA IDENTITY FULL, RLS
+// correcta, conexión estable, etc.).
+//
+// Los canales de Supabase Realtime se mantienen como
+// mecanismo SECUNDARIO: si funcionan, actualizan el tablero
+// de forma casi instantánea; si no, el polling de 5 segundos
+// garantiza la consistencia sin intervención humana.
+// ──────────────────────────────────────────────────────────
+
+let pollingTimer = null;
+
+function startPolling(){
+  if(pollingTimer) clearInterval(pollingTimer);
+  pollingTimer = setInterval(pollForUpdates, 5000);
+}
+
+async function pollForUpdates(){
+  if(dinamicaFinalizadaTablero) return;
+
+  try{
+    // Una sola consulta que trae conteos + últimos ganadores
+    const [{count:parts},{count:wins},{data:fresh}] = await Promise.all([
+      _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID),
+      _sb.from('participantes').select('*',{count:'exact',head:true}).eq('evento_id',EVENTO_ID).eq('resultado','ganador'),
+      _sb.from('participantes')
+        .select('id,nombre,codigo,fecha_juego,premio_entregado')
+        .eq('evento_id',EVENTO_ID)
+        .eq('resultado','ganador')
+        .order('fecha_juego',{ascending:false})
+        .limit(50),
+    ]);
+
+    updateStats({parts:parts??0, wins:wins??0});
+
+    if(!fresh) return;
+
+    // Detectar nuevos ganadores que no están en el array local
+    let hayNuevos = false;
+    for(const row of fresh){
+      const existing = winners.find(w=>w.codigo===row.codigo);
+      if(!existing){
+        // Ganador nuevo encontrado por polling
+        const w={id:row.id,nombre:row.nombre,codigo:row.codigo,ts:new Date(row.fecha_juego).getTime(),entregado:row.premio_entregado===true};
+        winners.unshift(w);
+        hayNuevos = true;
+        // Celebración solo si es muy reciente (menos de 30 segundos)
+        const secsAgo = (Date.now() - w.ts) / 1000;
+        if(secsAgo < 30){
+          showSpotlight(w, true);
+          showCelebration(w);
+          doConfetti();
+          duckTableroMusic(2600);
+          playWinSound();
+        } else if(!hayNuevos){
+          showSpotlight(w);
+        }
+      } else {
+        // Actualizar estado de entrega si cambió
+        existing.entregado = row.premio_entregado===true;
+      }
+    }
+
+    if(hayNuevos || fresh.some((r,i)=>r.premio_entregado !== (winners[i]?.entregado))){
+      renderTable();
+    }
+
+  }catch(e){
+    // Error de red: el tablero seguirá mostrando lo que tiene
+    // hasta que el siguiente poll tenga éxito
+    console.warn('Poll error (no data this cycle):', e);
+  }
+}
+
 function subscribeRealtime(){
-  // DB changes
+  // Canal primario: postgres_changes (inmediato si funciona)
   _sb.channel('tablero-db-'+EVENTO_ID)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'participantes',filter:`evento_id=eq.${EVENTO_ID}`},(payload)=>{
       const row=payload.new;
@@ -1002,27 +1080,32 @@ function subscribeRealtime(){
         const w={id:row.id,nombre:row.nombre,codigo:row.codigo,ts:Date.now(),entregado:row.premio_entregado===true};
         onNewWinner(w);
       } else if(existing && row.premio_entregado !== existing.entregado){
-        // Sincroniza si se marcó/desmarcó como entregado desde otra vista (ej. admin o el propio jugador)
         existing.entregado = row.premio_entregado===true;
         existing.id = existing.id || row.id;
         renderTable();
       }
+      updateStats({parts:0,wins:0}); // dispara un refresh real de counts
       refreshStats();
     })
-    .subscribe();
+    .subscribe((status)=>{
+      if(status === 'SUBSCRIBED'){
+        console.log('[Tablero] Realtime conectado — actualizaciones inmediatas activas');
+      } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){
+        console.warn('[Tablero] Realtime no disponible ('+status+') — polling activo cubre la diferencia');
+      }
+    });
 
-  // Broadcast from player app (canal específico de este evento)
+  // Canal secundario: broadcast del jugador
   _sb.channel('winners-live-'+EVENTO_ID)
     .on('broadcast',{event:'nuevo_ganador'},async(msg)=>{
       const p=msg.payload;
       if(p && !winners.find(w=>w.codigo===p.codigo)){
-        // El broadcast normalmente ya trae el id (UUID); si no, lo resolvemos.
         let resolvedId=p.id||null;
         if(!resolvedId){
           try{
             const {data}=await _sb.from('participantes').select('id').eq('evento_id',EVENTO_ID).eq('codigo',p.codigo).single();
             resolvedId=data?.id||null;
-          }catch(e){ /* si falla, el botón de entregar no funcionará hasta el próximo refresh */ }
+          }catch(e){}
         }
         onNewWinner({id:resolvedId,nombre:p.nombre,codigo:p.codigo,ts:p.ts||Date.now(),entregado:false});
         refreshStats();
