@@ -42,8 +42,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '⚽ Dinámica deportiva',
-    musicFile: 'musica-deportivo.mp3',
-    winSoundFile: 'sonido-ganador-deportivo.mp3',
+    musicFile: 'assets/audio/musica-deportivo.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador-deportivo.mp3',
   },
 
   // ── LUCHA LIBRE ──
@@ -66,8 +66,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '🤼 Dinámica de lucha libre',
-    musicFile: 'musica-lucha.mp3',
-    winSoundFile: 'sonido-ganador-lucha.mp3',
+    musicFile: 'assets/audio/musica-lucha.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador-lucha.mp3',
   },
 
   // ── GENÉRICO (respaldo cuando no hay coincidencia) ──
@@ -90,8 +90,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '🎉 Dinámica de premios',
-    musicFile: 'musica-generica.mp3',
-    winSoundFile: 'sonido-ganador-generico.mp3',
+    musicFile: 'assets/audio/musica-generica.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador-generico.mp3',
   },
 };
 

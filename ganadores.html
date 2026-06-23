@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#006400">
 <title>🏆 Tablero de Ganadores — México vs Corea</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="config.js"></script>
 <script src="themes.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -874,28 +873,28 @@ function generateInviteQR(){
   const box=document.getElementById('qr-invite-box');
   if(!box) return;
 
-  const url = `${location.origin}${location.pathname.replace('ganadores.html','index.html')}?evento=${encodeURIComponent(EVENTO_SLUG)}`;
+  const appUrl = `${location.origin}${location.pathname.replace('ganadores.html','index.html')}?evento=${encodeURIComponent(EVENTO_SLUG)}`;
+  const imgSrc = `assets/qr/${EVENTO_SLUG}.png`;
 
-  if(typeof QRCode === 'undefined'){
-    box.innerHTML = `<div class="qr-placeholder">📲<br>${esc(url)}</div>`;
-    return;
-  }
-
-  // QRCode.toDataURL es la API correcta para qrcode@1.5.3 en UMD/CDN.
-  // Genera una imagen base64 que se inserta como <img>, sin problemas
-  // de canvas cross-origin ni de tamaño de pixel ratio en pantallas HiDPI.
-  QRCode.toDataURL(url, {
-    width: 280,
-    margin: 1,
-    color:{ dark:'#0a150a', light:'#ffffff' },
-    errorCorrectionLevel: 'H'
-  }, (err, dataUrl)=>{
-    if(err || !dataUrl){
-      box.innerHTML = `<div class="qr-placeholder">📲<br>${esc(url)}</div>`;
-      return;
-    }
-    box.innerHTML = `<img src="${dataUrl}" alt="QR código de participación" style="width:100%;height:100%;object-fit:contain;border-radius:12px">`;
-  });
+  // Intenta cargar la imagen estática desde assets/qr/<slug>.png
+  // Si existe, muestra el QR. Si no, muestra la URL en texto
+  // para que el staff pueda compartirla manualmente.
+  const img = new Image();
+  img.onload = () => {
+    box.innerHTML = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:12px';
+    img.alt = 'Código QR para participar';
+    box.appendChild(img);
+  };
+  img.onerror = () => {
+    box.innerHTML = `
+      <div class="qr-placeholder">
+        📲<br>
+        <span style="font-size:11px;word-break:break-all">${esc(appUrl)}</span><br><br>
+        <span style="font-size:10px;opacity:.6">Coloca <strong>${EVENTO_SLUG}.png</strong><br>en la carpeta assets/qr/</span>
+      </div>`;
+  };
+  img.src = imgSrc;
 }
 
 /**
