@@ -33,6 +33,7 @@ const THEMES = {
   // ── MÉXICO VS ECUADOR (gran ocasión, alto impacto) ──
   mxEcuador: {
     id: 'mx-ecuador',
+    priority: 10, // tema específico solicitado: gana sobre "deportivo" genérico
     keywords: ['ecuador', 'mx vs ecuador', 'méxico vs ecuador', 'mexico vs ecuador'],
     colors: {
       verde:  '#006227', verde2: '#00853a', verde3: '#00a847',
@@ -57,6 +58,7 @@ const THEMES = {
   // ── DEPORTIVO / FÚTBOL (genérico, otros partidos) ──
   deportivo: {
     id: 'deportivo',
+    priority: 1,
     keywords: ['vs', 'fútbol', 'futbol', 'partido', 'méxico', 'mexico', 'selección', 'seleccion', 'liga', 'mundial'],
     colors: {
       verde:  '#006400', verde2: '#007a00', verde3: '#00a000',
@@ -81,6 +83,7 @@ const THEMES = {
   // ── LUCHA LIBRE ──
   lucha: {
     id: 'lucha',
+    priority: 1,
     keywords: ['lucha', 'luchador', 'luchadores', 'aaa', 'cmll', 'wrestling', 'ring'],
     colors: {
       verde:  '#7a0000', verde2: '#9a0000', verde3: '#b80000',
@@ -105,7 +108,7 @@ const THEMES = {
   // ── GENÉRICO (respaldo cuando no hay coincidencia) ──
   generico: {
     id: 'generico',
-    keywords: [], // nunca se usa como match directo; es el fallback
+    keywords: [], // nunca se usa como match directo; es siempre el comportamiento por defecto
     colors: {
       verde:  '#006400', verde2: '#007a00', verde3: '#00a000',
       oro:    '#c07a00', oro2:  '#d48c00',
@@ -114,9 +117,9 @@ const THEMES = {
     },
     flags: '🎉 🏆 🎊',
     homeIcon: '🎉',
-    heroEmojis: ['🎉','🏆','🎁','🌟','✨','🎊','⭐','🔥'],
+    heroEmojis: ['🎉','🏆','🎁','🌟','✨','🎊','⭐','🔥','🥳','🎈','💫','🪅'],
     welcomeIcon: '🎁',
-    welcomeFloaters: ['🎉','🏆','🎁','🌟','✨','🎊','⭐','🔥'],
+    welcomeFloaters: ['🎉','🏆','🎁','🌟','✨','🎊','⭐','🔥','🥳','🎈','💫','🪅'],
     winIcon: '🏆',
     loseIcon: '😔',
     claimedIcon: '🙌',
@@ -133,17 +136,35 @@ const THEMES = {
  * sus keywords aparece como palabra dentro del nombre. El primer
  * tema que haga match gana. Si ninguno coincide, regresa "generico".
  */
+/**
+ * Detecta el tema según el nombre del evento.
+ *
+ * El tema GENÉRICO es el comportamiento por defecto: siempre
+ * disponible, festivo, con emojis de regalo y alegría neutros.
+ * Se usa automáticamente salvo que el nombre del evento coincida
+ * con un tema más específico (ej. "México vs Ecuador", "Lucha
+ * Libre").
+ *
+ * La prioridad entre temas específicos se decide por el campo
+ * "priority" de cada uno (número más alto = se evalúa primero).
+ * Esto es explícito y a prueba de errores: si en el futuro
+ * agregas un tema nuevo que debe ganarle a otro existente (por
+ * ejemplo, un partido específico que debe tener prioridad sobre
+ * el tema "Deportivo" genérico), simplemente le das un número de
+ * priority más alto — sin tener que reordenar el objeto THEMES
+ * a mano ni arriesgarte a que el orden de declaración cambie el
+ * comportamiento sin que se note.
+ */
 function detectTheme(eventoNombre) {
   const nombre = (eventoNombre || '').toLowerCase();
 
-  for (const key of Object.keys(THEMES)) {
-    if (key === 'generico') continue;
-    const theme = THEMES[key];
-    const match = theme.keywords.some(kw => nombre.includes(kw));
-    if (match) return theme;
-  }
+  const candidatos = Object.keys(THEMES)
+    .filter(key => key !== 'generico')
+    .map(key => THEMES[key])
+    .filter(theme => theme.keywords.some(kw => nombre.includes(kw)))
+    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 
-  return THEMES.generico;
+  return candidatos[0] || THEMES.generico;
 }
 
 /**
