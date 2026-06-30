@@ -799,6 +799,25 @@ body::before{
   box-shadow:0 8px 30px rgba(0,200,83,.5),0 2px 0 rgba(255,255,255,.3) inset;
 }
 
+.res-incentive{
+  width:100%;
+  background:linear-gradient(135deg,rgba(255,214,0,.15),rgba(255,171,0,.1));
+  border:1.5px solid rgba(255,214,0,.4);
+  border-radius:16px;
+  padding:12px 16px;
+  margin-bottom:10px;
+  font-size:clamp(13px,3.6vw,15px);
+  line-height:1.5;
+  color:#fff;
+  text-align:center;
+  animation:incentivePulse 2s ease-in-out infinite;
+}
+.res-incentive strong{color:var(--oro);display:block;margin-top:2px}
+@keyframes incentivePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,214,0,.25)}
+  50%{box-shadow:0 0 0 8px rgba(255,214,0,0)}
+}
+
 .res-winner-name{
   font-family:'Bebas Neue';
   font-size:clamp(22px,6.5vw,34px);
@@ -2094,6 +2113,10 @@ function showResult(p){
   }
 
   bod.innerHTML=won?`
+    <div class="res-incentive">
+      🏆 ¡Resultaste ganador!<br>
+      <strong>Una vez que recibas tu premio, da clic aquí para registrarte como ganador.</strong>
+    </div>
     <button class="btn btn-hero" id="btn-claim" onclick="claimPrize()">
       ✅ &nbsp; YA CANJEÉ MI REGALO
     </button>
@@ -2105,14 +2128,12 @@ function showResult(p){
     <div class="res-code">${cod}</div>
     <div class="res-claim">
       📲 Muestra este folio al personal del evento.<br>
-      <strong>Una vez que canjees tu regalo, presiona el botón de arriba.</strong>
+      <strong>Tu registro no estará completo hasta que confirmes arriba.</strong>
     </div>
   `:`
     <div class="res-icon">${th.loseIcon}</div>
     <div class="res-title lose">GRACIAS POR<br>PARTICIPAR</div>
     <p class="res-msg">Esta vez no ganaste, pero gracias por ser parte de esta increíble dinámica. ¡Mantente atento a las diversas actividades del evento!</p>
-    <div class="res-code-label">Tu código de participación:</div>
-    <div class="res-code gray">${cod}</div>
   `;
 }
 
