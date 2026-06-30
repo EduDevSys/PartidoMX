@@ -808,30 +808,35 @@ async function resolveEventoTablero(){
 
 // ── DINÁMICA FINALIZADA: mensaje de despedida ──
 let dinamicaFinalizadaTablero = false;
+let finalizadoPollTimer = null;
 
 async function checkFinalizado(){
-  const {data} = await _sb.from('config_evento').select('finalizado').eq('evento_id',EVENTO_ID).single();
+  const {data} = await _sb.from('config_evento_publica').select('finalizado').eq('evento_id',EVENTO_ID).single();
   dinamicaFinalizadaTablero = data?.finalizado === true;
   renderFinalizadoOverlay();
 
-  // Escucha cambios en tiempo real para mostrar/ocultar el
-  // mensaje de despedida sin necesidad de recargar la página.
-  _sb.channel('finalizado-'+EVENTO_ID)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_evento',filter:`evento_id=eq.${EVENTO_ID}`},(pl)=>{
-      const next = pl.new.finalizado === true;
-      if(next !== dinamicaFinalizadaTablero){
-        dinamicaFinalizadaTablero = next;
-        renderFinalizadoOverlay();
-        if(!next){
-          // Si se reactiva el tablero, carga todo lo que se omitió al inicio
-          loadInitial();
-          subscribeRealtime();
-          generateInviteQR();
-          startSpotlightRotation();
-        }
+  // Se usa polling (no postgres_changes) porque config_evento ya
+  // no es legible vía Realtime para clientes anónimos — la columna
+  // staff_pin requiere que esa tabla esté restringida a usuarios
+  // autenticados. La vista config_evento_publica sí es de lectura
+  // libre, y este polling cada 8s consulta solo esa vista seguro.
+  if(finalizadoPollTimer) clearInterval(finalizadoPollTimer);
+  finalizadoPollTimer = setInterval(async()=>{
+    const {data:fresh} = await _sb.from('config_evento_publica').select('finalizado').eq('evento_id',EVENTO_ID).single();
+    const next = fresh?.finalizado === true;
+    if(next !== dinamicaFinalizadaTablero){
+      dinamicaFinalizadaTablero = next;
+      renderFinalizadoOverlay();
+      if(!next){
+        // Si se reactiva el tablero, carga todo lo que se omitió al inicio
+        loadInitial();
+        subscribeRealtime();
+        startPolling();
+        generateInviteQR();
+        startSpotlightRotation();
       }
-    })
-    .subscribe();
+    }
+  }, 8000);
 }
 
 function renderFinalizadoOverlay(){

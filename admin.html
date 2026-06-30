@@ -173,6 +173,30 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
 .prob-preset-btn.active{background:rgba(255,214,0,.15);border-color:var(--oro);color:var(--oro)}
 .prob-hint{font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.5}
 
+/* ── Tarjeta de acceso de staff ── */
+.staff-card{
+  background:var(--g2);border:1px solid var(--borde);
+  border-radius:16px;padding:18px 20px;margin-bottom:22px;
+}
+.staff-pin-row{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;
+}
+.staff-pin-box{
+  font-family:'Bebas Neue';font-size:30px;letter-spacing:8px;
+  color:var(--oro);background:rgba(255,214,0,.08);
+  border:1.5px solid rgba(255,214,0,.3);
+  padding:8px 22px;border-radius:12px;min-width:130px;text-align:center;
+  user-select:all;
+}
+.staff-link-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+.staff-link-row input{
+  flex:1;background:var(--g3);border:1px solid var(--borde);
+  color:rgba(255,255,255,.7);padding:9px 12px;border-radius:10px;
+  font-size:12px;font-family:monospace;outline:none;
+}
+
 /* ── MAIN ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
@@ -446,6 +470,22 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
         <div class="prob-hint">Controla qué porcentaje de jugadores gana al lanzar la moneda, sin importar el inventario disponible. El cambio aplica de inmediato a la siguiente persona que juegue.</div>
       </div>
 
+      <div class="staff-card">
+        <div class="prob-head">
+          <div class="prob-title">🧑‍💼 Acceso de Staff</div>
+        </div>
+        <div class="staff-pin-row">
+          <div class="staff-pin-box" id="staff-pin-display">····</div>
+          <button class="btn btn-ghost" onclick="toggleStaffPinVisible()" id="btn-toggle-pin">👁 Ver</button>
+          <button class="btn btn-gold" onclick="regenerateStaffPin()">🔄 Generar nuevo</button>
+        </div>
+        <div class="staff-link-row">
+          <input type="text" id="staff-link-display" readonly>
+          <button class="btn btn-ghost" onclick="copyStaffLink()">📋 Copiar enlace</button>
+        </div>
+        <div class="prob-hint">Comparte este enlace y PIN con el personal de este evento. Desde su celular podrán pausar la dinámica, ajustar la probabilidad, finalizarla, y marcar premios como entregados — sin acceso a ninguna otra función de administración.</div>
+      </div>
+
       <div class="panel-title" style="font-size:18px;margin-top:8px">Inventario por tipo</div>
       <div id="dash-inv-bars"></div>
       <div class="panel-title" style="font-size:18px;margin-top:16px">Últimos ganadores</div>
@@ -696,6 +736,57 @@ async function loadProbState(){
   renderProbUI();
 }
 
+// ══ ACCESO DE STAFF (PIN + enlace) ══
+let staffPinActual = '0000';
+let staffPinVisible = false;
+
+async function loadStaffPinState(){
+  const {data} = await _sb.from('config_evento').select('staff_pin').eq('evento_id',ST.eventoId).single();
+  staffPinActual = data?.staff_pin || '0000';
+  staffPinVisible = false;
+  renderStaffPinUI();
+}
+
+function renderStaffPinUI(){
+  const pinEl=document.getElementById('staff-pin-display');
+  const btnEl=document.getElementById('btn-toggle-pin');
+  if(pinEl) pinEl.textContent = staffPinVisible ? staffPinActual : '•'.repeat(staffPinActual.length);
+  if(btnEl) btnEl.textContent = staffPinVisible ? '🙈 Ocultar' : '👁 Ver';
+
+  const linkEl=document.getElementById('staff-link-display');
+  if(linkEl && ST.eventoSlug){
+    linkEl.value = `${location.origin}${location.pathname.replace('admin.html','staff.html')}?evento=${encodeURIComponent(ST.eventoSlug)}`;
+  }
+}
+
+function toggleStaffPinVisible(){
+  staffPinVisible = !staffPinVisible;
+  renderStaffPinUI();
+}
+
+async function regenerateStaffPin(){
+  const ok = confirm('¿Generar un nuevo PIN de staff?\n\nEl PIN anterior dejará de funcionar de inmediato. Tendrás que compartir el nuevo PIN con tu personal.');
+  if(!ok) return;
+  const nuevoPin = String(Math.floor(Math.random()*9999)).padStart(4,'0');
+  const {error} = await _sb.rpc('set_staff_pin',{p_evento_id:ST.eventoId,p_pin:nuevoPin});
+  if(error){ toast('❌ Error al generar el PIN'); return; }
+  staffPinActual = nuevoPin;
+  staffPinVisible = true;
+  renderStaffPinUI();
+  toast('🔄 Nuevo PIN generado: '+nuevoPin);
+}
+
+function copyStaffLink(){
+  const linkEl=document.getElementById('staff-link-display');
+  if(!linkEl) return;
+  linkEl.select();
+  navigator.clipboard?.writeText(linkEl.value).then(()=>{
+    toast('📋 Enlace copiado');
+  }).catch(()=>{
+    toast('Selecciona y copia el enlace manualmente');
+  });
+}
+
 function renderProbUI(){
   const pct = Math.round(probabilidadActual * 100);
   document.getElementById('prob-current').textContent = pct + '%';
@@ -826,7 +917,7 @@ async function initApp(){
     toast('⚠️ No hay eventos configurados. Crea uno para comenzar.');
     return;
   }
-  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState()]);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState(),loadStaffPinState()]);
   subscribeRT();
 }
 
@@ -859,7 +950,7 @@ async function onEventoChange(eventoId){
   ST.eventoSlug = ev.slug;
   localStorage.setItem('admin_evento_id', ev.id);
   toast(`📅 Evento activo: ${ev.nombre}`);
-  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState()]);
+  await Promise.all([loadDash(),loadParts(),loadInventory(),loadPauseState(),loadFinalizadoState(),loadProbState(),loadStaffPinState()]);
   subscribeRT();
 }
 
