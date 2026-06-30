@@ -2,27 +2,59 @@
  * ════════════════════════════════════════════════════════════
  *  THEMES.JS — Sistema de temas por tipo de evento
  * ════════════════════════════════════════════════════════════
- *  Detecta automáticamente el tema visual/sonoro de un evento
- *  según palabras clave en su nombre, y expone un objeto con
- *  emojis, colores CSS y música a usar en index.html y
- *  ganadores.html.
+ *  Detecta automáticamente el tema visual de un evento según
+ *  palabras clave en su nombre, y expone un objeto con emojis
+ *  y colores CSS a usar en index.html y ganadores.html.
  *
  *  Si el nombre del evento no coincide con ningún tema conocido,
  *  se usa el tema GENÉRICO (emojis de premio neutros, sin
- *  distinción de sexo, paleta dorado/verde, música genérica).
+ *  distinción de sexo, paleta dorado/verde).
+ *
+ *  ── AUDIO ──
+ *  La música y el sonido de victoria son DOS ARCHIVOS FIJOS,
+ *  compartidos por todos los temas (no varían por tipo de
+ *  evento):
+ *    - assets/audio/musica-fondo.mp3   → música de ambiente
+ *    - assets/audio/sonido-ganador.mp3 → al ganar un premio
+ *  Si no existen, cada HTML usa su propio generador de música
+ *  sintética como respaldo automático.
  *
  *  ── CÓMO AGREGAR UN TEMA NUEVO ──
  *  1. Copia un bloque de THEMES de abajo.
  *  2. Cambia "keywords" por las palabras que deben activarlo.
- *  3. Ajusta emojis, colores y el nombre del archivo de música.
- *  4. Sube el archivo de música a la misma carpeta del proyecto.
+ *  3. Ajusta emojis y colores (el audio no cambia, usa los
+ *     mismos dos archivos fijos de siempre).
  *  Nada más: index.html y ganadores.html lo usan automáticamente.
  * ════════════════════════════════════════════════════════════
  */
 
 const THEMES = {
 
-  // ── DEPORTIVO / FÚTBOL ──
+  // ── MÉXICO VS ECUADOR (gran ocasión, alto impacto) ──
+  mxEcuador: {
+    id: 'mx-ecuador',
+    keywords: ['ecuador', 'mx vs ecuador', 'méxico vs ecuador', 'mexico vs ecuador'],
+    colors: {
+      verde:  '#006227', verde2: '#00853a', verde3: '#00a847',
+      oro:    '#ffb700', oro2:  '#ffd000',
+      rojo:   '#ce1126',
+      acento: '#006227',
+    },
+    flags: '🇲🇽 ⚽ 🇪🇨',
+    homeIcon: '⚽',
+    heroEmojis: ['⚽','🏆','🔥','🎉','⭐','🇲🇽','🇪🇨','🎊'],
+    welcomeIcon: '🏆',
+    welcomeFloaters: ['⚽','🏆','🔥','🎉','⭐','🇲🇽','🇪🇨','🎊'],
+    winIcon: '🏆',
+    loseIcon: '😔',
+    claimedIcon: '🙌',
+    trophyEmoji: '🏆',
+    chipText: '🇲🇽 ¡VAMOS MÉXICO! 🆚 🇪🇨',
+    musicFile: 'assets/audio/musica-fondo.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador.mp3',
+  },
+
+  // ── DEPORTIVO / FÚTBOL (genérico, otros partidos) ──
   deportivo: {
     id: 'deportivo',
     keywords: ['vs', 'fútbol', 'futbol', 'partido', 'méxico', 'mexico', 'selección', 'seleccion', 'liga', 'mundial'],
@@ -42,8 +74,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '⚽ Dinámica deportiva',
-    musicFile: 'assets/audio/musica-deportivo.mp3',
-    winSoundFile: 'assets/audio/sonido-ganador-deportivo.mp3',
+    musicFile: 'assets/audio/musica-fondo.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador.mp3',
   },
 
   // ── LUCHA LIBRE ──
@@ -66,8 +98,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '🤼 Dinámica de lucha libre',
-    musicFile: 'assets/audio/musica-lucha.mp3',
-    winSoundFile: 'assets/audio/sonido-ganador-lucha.mp3',
+    musicFile: 'assets/audio/musica-fondo.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador.mp3',
   },
 
   // ── GENÉRICO (respaldo cuando no hay coincidencia) ──
@@ -90,8 +122,8 @@ const THEMES = {
     claimedIcon: '🙌',
     trophyEmoji: '🏆',
     chipText: '🎉 Dinámica de premios',
-    musicFile: 'assets/audio/musica-generica.mp3',
-    winSoundFile: 'assets/audio/sonido-ganador-generico.mp3',
+    musicFile: 'assets/audio/musica-fondo.mp3',
+    winSoundFile: 'assets/audio/sonido-ganador.mp3',
   },
 };
 
@@ -163,24 +195,22 @@ async function fileExists(url) {
  * ganadores.html) se active normalmente por su propio sistema
  * de detección de errores, sin interferencia de este módulo.
  */
-async function applyThemeMusic(theme, audioElId, fallbackToGeneric = true) {
+async function applyThemeMusic(theme, audioElId) {
   const el = document.getElementById(audioElId);
   if (!el) return;
 
-  let fileToUse = theme.musicFile;
-  let exists = await fileExists(theme.musicFile);
-
-  if (!exists && fallbackToGeneric && theme.id !== 'generico') {
-    fileToUse = THEMES.generico.musicFile;
-    exists = await fileExists(fileToUse);
-  }
-
-  if (!exists) return; // ningún archivo de música disponible; el respaldo sintético de cada HTML se encarga
+  // Todos los temas comparten el mismo archivo fijo de música de
+  // fondo (assets/audio/musica-fondo.mp3). Si no existe en el
+  // servidor, no se toca el <audio> y el respaldo sintético de
+  // cada HTML se activa solo por su propio sistema de detección
+  // de errores.
+  const exists = await fileExists(theme.musicFile);
+  if (!exists) return;
 
   const source = el.querySelector('source') || document.createElement('source');
   if (!el.contains(source)) el.appendChild(source);
   source.setAttribute('type', 'audio/mpeg');
-  source.setAttribute('src', fileToUse);
+  source.setAttribute('src', theme.musicFile);
   el.load();
 }
 
@@ -188,24 +218,21 @@ async function applyThemeMusic(theme, audioElId, fallbackToGeneric = true) {
  * Igual que applyThemeMusic pero para el sonido de victoria
  * (usado en ganadores.html).
  */
-async function applyThemeWinSound(theme, audioElId, fallbackToGeneric = true) {
+async function applyThemeWinSound(theme, audioElId) {
   const el = document.getElementById(audioElId);
   if (!el) return;
 
-  let fileToUse = theme.winSoundFile;
-  let exists = await fileExists(theme.winSoundFile);
-
-  if (!exists && fallbackToGeneric && theme.id !== 'generico') {
-    fileToUse = THEMES.generico.winSoundFile;
-    exists = await fileExists(fileToUse);
-  }
-
-  if (!exists) return; // ningún archivo disponible; el respaldo sintético (fanfare) de ganadores.html se encarga
+  // Mismo patrón que applyThemeMusic: archivo fijo
+  // (assets/audio/sonido-ganador.mp3) compartido por todos los
+  // temas. Si no existe, el respaldo sintético de ganadores.html
+  // se activa solo.
+  const exists = await fileExists(theme.winSoundFile);
+  if (!exists) return;
 
   const source = el.querySelector('source') || document.createElement('source');
   if (!el.contains(source)) el.appendChild(source);
   source.setAttribute('type', 'audio/mpeg');
-  source.setAttribute('src', fileToUse);
+  source.setAttribute('src', theme.winSoundFile);
   el.load();
 }
 
