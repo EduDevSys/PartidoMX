@@ -336,7 +336,7 @@ body::before{display:none}
     </div>
     <div class="hdr-right">
       <div class="live-pill"><div class="live-dot"></div>EN VIVO</div>
-      <div class="hdr-flags">🇲🇽 ⚽ 🇰🇷</div>
+      <div class="hdr-flags" id="hdr-flags-dynamic">🇲🇽 ⚽ 🇰🇷</div>
     </div>
   </div>
 
@@ -787,6 +787,11 @@ async function resolveEventoTablero(){
 
   const titleEl=document.querySelector('.hdr-title');
   if(titleEl) titleEl.textContent = `🏆 TABLERO — ${data.nombre.toUpperCase()}`;
+
+  // Banderas del header — antes quedaban fijas en 🇲🇽⚽🇰🇷 sin
+  // importar el tema; ahora reflejan el tema realmente detectado.
+  const flagsEl=document.getElementById('hdr-flags-dynamic');
+  if(flagsEl) flagsEl.textContent = EVENTO_THEME.flags;
 
   document.title = `🏆 Tablero de Ganadores — ${data.nombre}`;
   const subEl=document.getElementById('hdr-sub-text');

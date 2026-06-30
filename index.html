@@ -1497,6 +1497,10 @@ async function resolveEvento(){
   // Actualizar título visible con el nombre real del evento
   const titleEl=document.getElementById('ev-title-home');
   if(titleEl) titleEl.textContent = data.nombre.toUpperCase();
+
+  // Título de la pestaña del navegador — antes quedaba fijo en
+  // "México vs Corea" sin importar el evento real.
+  document.title = `${ST.theme.homeIcon} ${data.nombre} — ¡Gana Premios!`;
 }
 
 /**
@@ -1505,8 +1509,11 @@ async function resolveEvento(){
  * bienvenida, cara de la moneda, etc.)
  */
 function applyThemeContent(theme){
-  const flagsEl=document.getElementById('ev-flags-home');
-  if(flagsEl) flagsEl.textContent = theme.flags;
+  // Actualiza las banderas en TODAS las pantallas (home, registro,
+  // código, juego, trivia, resultado) — no solo la de inicio, para
+  // que nunca quede una bandera del tema anterior "pegada" en una
+  // pantalla a la que el usuario llegue navegando.
+  document.querySelectorAll('.flags').forEach(el => { el.textContent = theme.flags; });
 
   const chipEl=document.getElementById('ev-chip-text');
   if(chipEl) chipEl.textContent = theme.chipText;
