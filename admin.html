@@ -416,6 +416,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
       <button class="nav-btn" onclick="switchTab('parts',this);closeMobileMenu()"><span class="ico">👥</span> Participantes</button>
       <button class="nav-btn" onclick="switchTab('inv',this);closeMobileMenu()"><span class="ico">📦</span> Inventario</button>
       <button class="nav-btn" onclick="openGanadoresTab()"><span class="ico">🏆</span> Tablero Ganadores</button>
+      <button class="nav-btn" onclick="openStaffTab()"><span class="ico">🧑‍💼</span> Panel de Staff</button>
       <button class="nav-btn" onclick="openAppTab()"><span class="ico">📱</span> Ver App</button>
     </div>
     <div class="sb-footer">
@@ -957,6 +958,10 @@ async function onEventoChange(eventoId){
 function openGanadoresTab(){
   if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
   window.open(`ganadores.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
+}
+function openStaffTab(){
+  if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
+  window.open(`staff.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
 }
 function openAppTab(){
   if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
