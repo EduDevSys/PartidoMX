@@ -298,7 +298,9 @@ button{font-family:inherit}
 <div id="toast"></div>
 
 <script>
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// _sb ya está definida globalmente por config.js (cargado arriba vía
+// <script src="config.js">) — no se vuelve a declarar aquí para evitar
+// el error "Identifier '_sb' has already been declared".
 
 const ST = { eventoId:null, eventoNombre:'', eventoSlug:null };
 let pausada=false, finalizada=false, probabilidadActual=0.20;
