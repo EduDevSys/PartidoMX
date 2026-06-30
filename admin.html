@@ -756,7 +756,7 @@ function renderStaffPinUI(){
 
   const linkEl=document.getElementById('staff-link-display');
   if(linkEl && ST.eventoSlug){
-    linkEl.value = `${location.origin}${location.pathname.replace('admin.html','staff.html')}?evento=${encodeURIComponent(ST.eventoSlug)}`;
+    linkEl.value = `${location.origin}${location.pathname.replace('admin.html','panel-staff.html')}?evento=${encodeURIComponent(ST.eventoSlug)}`;
   }
 }
 
@@ -961,7 +961,7 @@ function openGanadoresTab(){
 }
 function openStaffTab(){
   if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
-  window.open(`staff.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
+  window.open(`panel-staff.html?evento=${encodeURIComponent(ST.eventoSlug)}`,'_blank');
 }
 function openAppTab(){
   if(!ST.eventoSlug){ toast('Selecciona un evento primero'); return; }
