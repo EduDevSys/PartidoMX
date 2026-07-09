@@ -340,7 +340,7 @@ button{font-family:inherit}
 
 <script>
 const ST = { eventoId:null, eventoNombre:'', eventoSlug:null };
-let finalizada=false, probabilidadActual=0.20;
+let finalizada=false, probabilidadActual=0.50;
 let pendientes=[], pollTimer=null;
 
 // ── Mapa de "nivel" (etiqueta neutral) a probabilidad real ──
@@ -464,7 +464,7 @@ async function loadConfig(){
   const {data}=await _sb.from('config_evento_publica').select('finalizado,probabilidad_ganar').eq('evento_id',ST.eventoId).single();
   if(!data) return;
   finalizada=data.finalizado===true;
-  probabilidadActual=data.probabilidad_ganar??0.20;
+  probabilidadActual=data.probabilidad_ganar??0.50;
   renderConfigUI();
 }
 

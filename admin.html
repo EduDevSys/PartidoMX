@@ -459,7 +459,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
           <div class="prob-current" id="prob-current">20%</div>
         </div>
         <div class="prob-slider-row">
-          <input type="range" id="prob-slider" min="0" max="100" step="5" value="20" oninput="onProbSlide(this.value)">
+          <input type="range" id="prob-slider" min="0" max="100" step="5" value="50" oninput="onProbSlide(this.value)">
         </div>
         <div class="prob-presets">
           <button class="prob-preset-btn" onclick="setProbPreset(0)">0%</button>
@@ -739,12 +739,12 @@ async function toggleFinalizado(){
 }
 
 // ══ PROBABILIDAD DE GANAR ══
-let probabilidadActual = 0.20;
+let probabilidadActual = 0.50;
 let probSaveTimer = null;
 
 async function loadProbState(){
   const {data} = await _sb.from('config_evento').select('probabilidad_ganar').eq('evento_id',ST.eventoId).single();
-  probabilidadActual = (data?.probabilidad_ganar ?? 0.20);
+  probabilidadActual = (data?.probabilidad_ganar ?? 0.50);
   renderProbUI();
 }
 
