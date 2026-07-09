@@ -753,7 +753,7 @@ async function resolveEventoTablero(){
   const slug = params.get('evento') || 'mx-corea';
   EVENTO_SLUG = slug;
 
-  const {data, error} = await _sb.from('eventos').select('id,nombre,activo').eq('slug',slug).single();
+  const {data, error} = await _sb.from('eventos').select('id,nombre,activo,musica').eq('slug',slug).single();
 
   if(error || !data){
     document.body.innerHTML = `
@@ -782,7 +782,8 @@ async function resolveEventoTablero(){
   EVENTO_THEME = initTheme(data.nombre, {
     musicElId:'tablero-music',
     winSoundElId:'tablero-winsound',
-    skipColors:true
+    skipColors:true,
+    musicFile: data.musica
   });
 
   const titleEl=document.querySelector('.hdr-title');

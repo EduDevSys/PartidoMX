@@ -1466,7 +1466,7 @@ async function resolveEvento(){
   const params = new URLSearchParams(location.search);
   const slug = params.get('evento') || LS.get('mxk_evento_slug') || 'mx-corea';
 
-  const {data, error} = await _sb.from('eventos').select('id,nombre,activo').eq('slug',slug).single();
+  const {data, error} = await _sb.from('eventos').select('id,nombre,activo,musica').eq('slug',slug).single();
 
   if(error || !data){
     document.getElementById('welcome-modal').classList.add('hide');
@@ -1510,7 +1510,7 @@ async function resolveEvento(){
   LS.set('mxk_evento_slug', slug);
 
   // ── Aplicar tema (emojis, colores, música) según el nombre del evento ──
-  ST.theme = initTheme(data.nombre, { musicElId:'bg-music' });
+  ST.theme = initTheme(data.nombre, { musicElId:'bg-music', musicFile: data.musica });
   applyThemeContent(ST.theme);
 
   // Actualizar título visible con el nombre real del evento

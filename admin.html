@@ -593,6 +593,15 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
       <label>Inventario inicial de premios</label>
       <input type="number" id="ne-inventario" value="500" min="0">
     </div>
+    <div class="fg">
+      <label>🎵 Música de fondo</label>
+      <select id="ne-musica" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--borde);background:var(--g3);color:var(--txt);font-size:14px;font-weight:600;outline:none">
+        <option value="musica-generica.mp3">🎉 Genérica (cualquier evento)</option>
+        <option value="musica-soccer.mp3">⚽ Soccer / Fútbol</option>
+        <option value="musica-lucha.mp3">🤼 Lucha libre</option>
+      </select>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:5px">Sube el archivo con ese nombre a <code>assets/audio/</code>. Si no existe, se usa la genérica.</div>
+    </div>
     <div class="lerr" id="ne-err"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeNewEventModal()">Cancelar</button>
@@ -974,6 +983,7 @@ function openNewEventModal(){
   document.getElementById('ne-nombre').value='';
   document.getElementById('ne-slug').value='';
   document.getElementById('ne-inventario').value='500';
+  document.getElementById('ne-musica').value='musica-generica.mp3';
   document.getElementById('ne-err').textContent='';
   document.getElementById('new-event-modal').classList.add('on');
 }
@@ -1006,6 +1016,7 @@ async function createNewEvent(){
   const nombre=document.getElementById('ne-nombre').value.trim();
   const slug=document.getElementById('ne-slug').value.trim();
   const inv=parseInt(document.getElementById('ne-inventario').value);
+  const musica=document.getElementById('ne-musica').value;
   const errEl=document.getElementById('ne-err');
   errEl.textContent='';
 
@@ -1016,6 +1027,18 @@ async function createNewEvent(){
   const {data,error}=await _sb.rpc('crear_evento',{
     p_nombre:nombre, p_slug:slug, p_inventario_inicial:inv
   });
+
+  if(error){
+    errEl.textContent = error.message.includes('duplicate')||error.message.includes('unique')
+      ? 'Ese identificador ya está en uso, elige otro'
+      : 'Error al crear el evento';
+    return;
+  }
+
+  // Guardar la música elegida en la tabla eventos
+  if(data){
+    await _sb.from('eventos').update({musica}).eq('id',data);
+  }
 
   if(error){
     errEl.textContent = error.message.includes('duplicate')||error.message.includes('unique')

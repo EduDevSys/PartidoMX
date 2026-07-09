@@ -275,7 +275,15 @@ async function applyThemeWinSound(theme, audioElId) {
 function initTheme(eventoNombre, opts = {}) {
   const theme = detectTheme(eventoNombre);
   if (!opts.skipColors) applyThemeColors(theme);
-  if (opts.musicElId) applyThemeMusic(theme, opts.musicElId);
-  if (opts.winSoundElId) applyThemeWinSound(theme, opts.winSoundElId);
-  return theme;
+
+  // Música: el campo opts.musicFile (guardado en la BD al crear el
+  // evento) tiene prioridad sobre el que define el tema automático.
+  // Si no se pasó, usa el del tema (assets/audio/musica-fondo.mp3).
+  const resolvedTheme = opts.musicFile
+    ? { ...theme, musicFile: `assets/audio/${opts.musicFile}` }
+    : theme;
+
+  if (opts.musicElId) applyThemeMusic(resolvedTheme, opts.musicElId);
+  if (opts.winSoundElId) applyThemeWinSound(resolvedTheme, opts.winSoundElId);
+  return resolvedTheme;
 }

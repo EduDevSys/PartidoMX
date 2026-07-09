@@ -60,36 +60,24 @@ button{font-family:inherit}
   display:flex;align-items:center;gap:10px;
 }
 
-/* ── NIVEL DE LA DINÁMICA (antes: probabilidad) ── */
-/* Nombre neutro: evita que un jugador curioso entienda que controla quién gana */
-.nivel-display{
-  font-family:'Bebas Neue';font-size:clamp(28px,9vw,42px);
-  text-align:center;color:var(--verde);line-height:1;margin-bottom:6px;
+/* ── TRES NIVELES — botones grandes de color ── */
+.nivel-btns{display:flex;flex-direction:column;gap:12px}
+.nivel-btn{
+  width:100%;padding:22px 18px;border-radius:20px;border:none;
+  font-size:clamp(18px,5.5vw,24px);font-weight:900;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  box-shadow:0 4px 14px rgba(0,0,0,.15);transition:transform .12s,opacity .15s;
+  opacity:.55;
 }
-.nivel-etiqueta{
-  text-align:center;font-size:14px;font-weight:700;color:var(--txt-dim);
-  margin-bottom:14px;
+.nivel-btn:active{transform:scale(.97)}
+.nivel-btn.active{opacity:1;box-shadow:0 6px 22px rgba(0,0,0,.25)}
+.nivel-btn.todos-pierden{background:var(--rojo);color:#fff}
+.nivel-btn.normal{background:var(--verde);color:#fff}
+.nivel-btn.todos-ganan{background:linear-gradient(135deg,var(--oro2),var(--oro));color:#fff}
+.nivel-sub{
+  text-align:center;font-size:clamp(11px,3vw,13px);color:var(--txt-dim);
+  margin-top:8px;line-height:1.4;
 }
-.nivel-slider-wrap{padding:0 6px;margin-bottom:16px}
-.nivel-slider-wrap input[type=range]{
-  width:100%;height:14px;border-radius:8px;
-  background:#e0e8e0;outline:none;-webkit-appearance:none;cursor:pointer;
-}
-.nivel-slider-wrap input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:38px;height:38px;border-radius:50%;
-  background:var(--verde);border:4px solid #fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);
-}
-.nivel-slider-wrap input[type=range]::-moz-range-thumb{
-  width:38px;height:38px;border-radius:50%;border:4px solid #fff;
-  background:var(--verde);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);
-}
-.nivel-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.nivel-preset-btn{
-  padding:14px 4px;border-radius:12px;font-size:clamp(11px,3vw,14px);font-weight:800;
-  background:#eef4ee;border:2px solid var(--borde);color:var(--txt);cursor:pointer;
-  line-height:1.25;text-align:center;
-}
-.nivel-preset-btn.active{background:var(--verde);border-color:var(--verde);color:#fff}
 
 /* ── BOTONES DE ACCIÓN GRANDES (con confirmación en 2 pasos) ── */
 .big-toggle-btn{
@@ -126,6 +114,29 @@ button{font-family:inherit}
 .wr-deliver-btn:active{transform:scale(.97)}
 .empty-pending{text-align:center;padding:30px 10px;color:var(--txt-dim);font-size:15px}
 .empty-pending-icon{font-size:46px;margin-bottom:10px}
+
+/* ── MODAL DE CONFIRMACIÓN ── */
+.modal-bg{
+  display:none;position:fixed;inset:0;z-index:3000;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:24px;
+}
+.modal-bg.on{display:flex}
+.modal-card{
+  background:#fff;border-radius:24px;padding:28px 24px;
+  max-width:380px;width:100%;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.modal-icon{font-size:48px;margin-bottom:10px}
+.modal-title{font-family:'Bebas Neue';font-size:26px;letter-spacing:1px;margin-bottom:10px;color:var(--txt)}
+.modal-msg{font-size:15px;color:var(--txt-dim);line-height:1.6;margin-bottom:22px}
+.modal-btns{display:flex;gap:10px}
+.modal-btn{
+  flex:1;padding:16px;border-radius:14px;border:none;
+  font-size:16px;font-weight:800;cursor:pointer;
+}
+.modal-btn.cancel{background:#f0f0f0;color:#666}
+.modal-btn.confirm{background:var(--azul);color:#fff}
 
 /* ── LOG DE ACTIVIDAD (solo visible para el staff) ── */
 .log-card{
@@ -252,19 +263,18 @@ button{font-family:inherit}
          evitar que el jugador entienda que esto controla quién gana -->
     <div class="ctrl-card">
       <div class="ctrl-title">⚡ Nivel de la dinámica</div>
-      <div class="nivel-display" id="nivel-display">Normal</div>
-      <div class="nivel-etiqueta" id="nivel-etiqueta">Nivel estándar del evento</div>
-      <div class="nivel-slider-wrap">
-        <input type="range" id="nivel-slider" min="0" max="5" step="1" value="2" oninput="onNivelSlide(this.value)">
+      <div class="nivel-btns">
+        <button class="nivel-btn todos-pierden" id="nivel-0" onclick="setNivel(0)">
+          🚫 TODOS PIERDEN
+        </button>
+        <button class="nivel-btn normal active" id="nivel-1" onclick="setNivel(1)">
+          ⚡ NORMAL
+        </button>
+        <button class="nivel-btn todos-ganan" id="nivel-2" onclick="setNivel(2)">
+          🏆 TODOS GANAN
+        </button>
       </div>
-      <div class="nivel-presets">
-        <button class="nivel-preset-btn" onclick="setNivelPreset(0)">Todos<br>pierden</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(1)">Muy<br>bajo</button>
-        <button class="nivel-preset-btn active" onclick="setNivelPreset(2)">Normal</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(3)">Activo</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(4)">Alto</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(5)">Máximo</button>
-      </div>
+      <div class="nivel-sub">El nivel activo aparece resaltado. Toca para cambiar.</div>
     </div>
 
     <!-- FINALIZAR -->
@@ -310,6 +320,19 @@ button{font-family:inherit}
   <button class="qr-ov-close" onclick="hideQROverlay()">✕ Cerrar</button>
 </div>
 
+<!-- MODAL: Confirmación finalizar -->
+<div class="modal-bg" id="modal-finalizar">
+  <div class="modal-card">
+    <div class="modal-icon">📢</div>
+    <div class="modal-title">¿FINALIZAR EVENTO?</div>
+    <div class="modal-msg">Estás informando que los premios o el evento ya terminaron.<br><br>El tablero de ganadores mostrará el mensaje de despedida. Puedes reactivarlo en cualquier momento.</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="cerrarModalFinalizar()">Cancelar</button>
+      <button class="modal-btn confirm" onclick="confirmarFinalizar()">Sí, finalizar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -321,23 +344,17 @@ let pendientes=[], pollTimer=null;
 // Los valores deben coincidir EXACTAMENTE con los presets del admin
 // (10%, 20%, 30%, 40%, 50%) más el 0% que equivale a "todos pierden".
 // Así, cuando el admin o el staff guarden un valor, ambos lo leen igual.
+// ── Tres niveles ──
 const NIVELES = [
-  { label:'Todos pierden', etiqueta:'Sin registro de ganadores por ahora', prob:0.00 },
-  { label:'Muy bajo',      etiqueta:'Participación mínima',                prob:0.10 },
-  { label:'Normal',        etiqueta:'Nivel estándar del evento',            prob:0.20 },
-  { label:'Activo',        etiqueta:'Alta participación',                   prob:0.30 },
-  { label:'Alto',          etiqueta:'Evento muy dinámico',                  prob:0.40 },
-  { label:'Máximo',        etiqueta:'Máxima participación',                 prob:0.50 },
+  { prob:0.00 },  // 0: Todos pierden
+  { prob:0.20 },  // 1: Normal
+  { prob:0.50 },  // 2: Todos ganan
 ];
 
 function probToNivel(prob){
-  // Encuentra el nivel más cercano a la probabilidad actual
-  let closest=0, minDiff=Infinity;
-  NIVELES.forEach((n,i)=>{
-    const diff=Math.abs(n.prob - prob);
-    if(diff < minDiff){ minDiff=diff; closest=i; }
-  });
-  return closest;
+  if(prob <= 0.00) return 0;
+  if(prob >= 0.40) return 2;
+  return 1;
 }
 
 // ── Log de actividad de sesión ──
@@ -429,7 +446,6 @@ function enterPanel(){
   document.getElementById('hdr-evento-name').textContent=ST.eventoNombre;
   loadAll();
   pollTimer=setInterval(loadAll,6000);
-  // Al entrar, mostrar el QR automáticamente
   loadQRImage();
   setTimeout(showQROverlay, 300);
 }
@@ -442,9 +458,8 @@ async function loadAll(){
 }
 
 async function loadConfig(){
-  const {data}=await _sb.from('config_evento_publica').select('pausado,finalizado,probabilidad_ganar').eq('evento_id',ST.eventoId).single();
+  const {data}=await _sb.from('config_evento_publica').select('finalizado,probabilidad_ganar').eq('evento_id',ST.eventoId).single();
   if(!data) return;
-  pausada=data.pausado===true;
   finalizada=data.finalizado===true;
   probabilidadActual=data.probabilidad_ganar??0.20;
   renderConfigUI();
@@ -452,56 +467,50 @@ async function loadConfig(){
 
 function renderConfigUI(){
   document.getElementById('banner-fin').classList.toggle('on',finalizada);
-
   const btnF=document.getElementById('btn-finalizar');
   btnF.classList.toggle('active',finalizada);
   document.getElementById('btn-finalizar-icon').textContent=finalizada?'↩️':'📢';
   document.getElementById('btn-finalizar-text').textContent=finalizada?'REACTIVAR TABLERO':'FINALIZAR EVENTO';
-
-  // Sincronizar el slider de nivel con la probabilidad actual
-  const nivelIdx=probToNivel(probabilidadActual);
-  document.getElementById('nivel-slider').value=nivelIdx;
-  renderNivelDisplay(nivelIdx);
+  renderNivelUI(probToNivel(probabilidadActual));
 }
 
 // ══════════════════════════════════════════
-//  NIVEL DE LA DINÁMICA
+//  NIVEL DE LA DINÁMICA — 3 botones
 // ══════════════════════════════════════════
-function renderNivelDisplay(idx){
-  const n=NIVELES[idx];
-  document.getElementById('nivel-display').textContent=n.label;
-  document.getElementById('nivel-etiqueta').textContent=n.etiqueta;
-  document.querySelectorAll('.nivel-preset-btn').forEach((b,i)=>{
+function renderNivelUI(idx){
+  document.querySelectorAll('.nivel-btn').forEach((b,i)=>{
     b.classList.toggle('active',i===idx);
   });
 }
 
-function onNivelSlide(value){
-  const idx=parseInt(value);
-  renderNivelDisplay(idx);
-  saveNivel(idx);
+async function setNivel(idx){
+  const {error}=await _sb.rpc('set_probabilidad',{p_evento_id:ST.eventoId,p_probabilidad:NIVELES[idx].prob});
+  if(error){ toast('❌ Error al cambiar el nivel'); return; }
+  probabilidadActual=NIVELES[idx].prob;
+  renderNivelUI(idx);
+  const labels=['🚫 Todos pierden','⚡ Normal','🏆 Todos ganan'];
+  addLog(`Nivel: ${labels[idx]}`);
+  toast(labels[idx]);
 }
-
-function setNivelPreset(idx){
-  document.getElementById('nivel-slider').value=idx;
-  renderNivelDisplay(idx);
-  saveNivel(idx);
-}
-
-async function saveNivel(idx){
-  const n=NIVELES[idx];
-  const {error}=await _sb.rpc('set_probabilidad',{p_evento_id:ST.eventoId,p_probabilidad:n.prob});
-  if(error){ toast('❌ Error al actualizar el nivel'); return; }
-  probabilidadActual=n.prob;
-  addLog(`Nivel cambiado a "${n.label}"`);
-  toast(`⚡ Nivel actualizado: ${n.label}`);
-}
-
 
 // ══════════════════════════════════════════
-//  FINALIZAR
+//  FINALIZAR — con modal de confirmación
 // ══════════════════════════════════════════
 function requestFinalizar(){
+  if(!finalizada){
+    // Mostrar modal solo al finalizar, no al reactivar
+    document.getElementById('modal-finalizar').classList.add('on');
+  } else {
+    executeFinalizar();
+  }
+}
+
+function cerrarModalFinalizar(){
+  document.getElementById('modal-finalizar').classList.remove('on');
+}
+
+function confirmarFinalizar(){
+  cerrarModalFinalizar();
   executeFinalizar();
 }
 
