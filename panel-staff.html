@@ -99,29 +99,13 @@ button{font-family:inherit}
   transition:transform .12s;box-shadow:0 4px 14px rgba(0,0,0,.15);
 }
 .big-toggle-btn:active{transform:scale(.97)}
-.btn-pausar{background:var(--rojo);color:#fff}
-.btn-pausar.active{background:var(--verde2)}
 .btn-finalizar{background:var(--azul);color:#fff}
 .btn-finalizar.active{background:#777}
-
-/* Estado "esperando confirmación": borde pulsante para indicar al staff
-   que debe presionar de nuevo para confirmar la acción */
-.big-toggle-btn.confirmar{
-  animation:confirmPulse .5s ease-in-out infinite alternate;
-  outline:4px solid rgba(255,255,255,.6);
-}
-@keyframes confirmPulse{from{transform:scale(1)}to{transform:scale(1.03)}}
 
 .toggle-sub{
   text-align:center;font-size:clamp(12px,3.2vw,14px);color:var(--txt-dim);
   margin-top:10px;line-height:1.5;
 }
-.confirm-hint{
-  text-align:center;font-size:13px;font-weight:800;color:var(--rojo);
-  margin-top:8px;display:none;
-}
-.confirm-hint.on{display:block}
-
 /* ── PREMIOS PENDIENTES ── */
 .pending-count-badge{
   background:var(--oro);color:#fff;font-family:'Bebas Neue';
@@ -259,7 +243,6 @@ button{font-family:inherit}
 
   <div class="wrap">
 
-    <div class="status-banner pausa" id="banner-pausa">⏸ DINÁMICA EN PAUSA</div>
     <div class="status-banner fin" id="banner-fin">🏁 EVENTO FINALIZADO</div>
 
     <button class="btn-show-qr" onclick="showQROverlay()">📲 MOSTRAR CÓDIGO QR</button>
@@ -272,27 +255,16 @@ button{font-family:inherit}
       <div class="nivel-display" id="nivel-display">Normal</div>
       <div class="nivel-etiqueta" id="nivel-etiqueta">Nivel estándar del evento</div>
       <div class="nivel-slider-wrap">
-        <input type="range" id="nivel-slider" min="0" max="4" step="1" value="1" oninput="onNivelSlide(this.value)">
+        <input type="range" id="nivel-slider" min="0" max="5" step="1" value="2" oninput="onNivelSlide(this.value)">
       </div>
       <div class="nivel-presets">
-        <button class="nivel-preset-btn" onclick="setNivelPreset(0)">Muy<br>bajo</button>
-        <button class="nivel-preset-btn active" onclick="setNivelPreset(1)">Normal</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(2)">Activo</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(3)">Alto</button>
-        <button class="nivel-preset-btn" onclick="setNivelPreset(4)">Máximo</button>
+        <button class="nivel-preset-btn" onclick="setNivelPreset(0)">Todos<br>pierden</button>
+        <button class="nivel-preset-btn" onclick="setNivelPreset(1)">Muy<br>bajo</button>
+        <button class="nivel-preset-btn active" onclick="setNivelPreset(2)">Normal</button>
+        <button class="nivel-preset-btn" onclick="setNivelPreset(3)">Activo</button>
+        <button class="nivel-preset-btn" onclick="setNivelPreset(4)">Alto</button>
+        <button class="nivel-preset-btn" onclick="setNivelPreset(5)">Máximo</button>
       </div>
-      <div class="confirm-hint" id="nivel-confirm-hint">⚠️ Presiona de nuevo para confirmar el cambio</div>
-    </div>
-
-    <!-- PAUSAR / ACTIVAR -->
-    <div class="ctrl-card">
-      <div class="ctrl-title">⏸ Estado del evento</div>
-      <button class="big-toggle-btn btn-pausar" id="btn-pausar" onclick="requestPausa()">
-        <span id="btn-pausar-icon">⏸</span>
-        <span id="btn-pausar-text">PAUSAR EVENTO</span>
-      </button>
-      <div class="confirm-hint" id="pausa-confirm-hint">⚠️ Presiona de nuevo para confirmar</div>
-      <div class="toggle-sub" id="pausa-sub">Al pausar, la experiencia del participante continúa normal pero sin registro de ganadores.</div>
     </div>
 
     <!-- FINALIZAR -->
@@ -302,7 +274,6 @@ button{font-family:inherit}
         <span id="btn-finalizar-icon">📢</span>
         <span id="btn-finalizar-text">FINALIZAR EVENTO</span>
       </button>
-      <div class="confirm-hint" id="finalizar-confirm-hint">⚠️ Presiona de nuevo para confirmar</div>
       <div class="toggle-sub">Al finalizar, el tablero cambia al mensaje de despedida.</div>
     </div>
 
@@ -343,19 +314,20 @@ button{font-family:inherit}
 
 <script>
 const ST = { eventoId:null, eventoNombre:'', eventoSlug:null };
-let pausada=false, finalizada=false, probabilidadActual=0.20;
+let finalizada=false, probabilidadActual=0.20;
 let pendientes=[], pollTimer=null;
 
 // ── Mapa de "nivel" (etiqueta neutral) a probabilidad real ──
-// El staff solo ve etiquetas descriptivas, nunca porcentajes.
-// Esto evita que alguien que mire de reojo entienda que controla
-// cuántos participantes ganan.
+// Los valores deben coincidir EXACTAMENTE con los presets del admin
+// (10%, 20%, 30%, 40%, 50%) más el 0% que equivale a "todos pierden".
+// Así, cuando el admin o el staff guarden un valor, ambos lo leen igual.
 const NIVELES = [
-  { label:'Muy bajo',  etiqueta:'Participación mínima',  prob:0.05 },
-  { label:'Normal',    etiqueta:'Nivel estándar del evento', prob:0.20 },
-  { label:'Activo',    etiqueta:'Alta participación',    prob:0.30 },
-  { label:'Alto',      etiqueta:'Evento muy dinámico',   prob:0.40 },
-  { label:'Máximo',    etiqueta:'Máxima participación',  prob:0.50 },
+  { label:'Todos pierden', etiqueta:'Sin registro de ganadores por ahora', prob:0.00 },
+  { label:'Muy bajo',      etiqueta:'Participación mínima',                prob:0.10 },
+  { label:'Normal',        etiqueta:'Nivel estándar del evento',            prob:0.20 },
+  { label:'Activo',        etiqueta:'Alta participación',                   prob:0.30 },
+  { label:'Alto',          etiqueta:'Evento muy dinámico',                  prob:0.40 },
+  { label:'Máximo',        etiqueta:'Máxima participación',                 prob:0.50 },
 ];
 
 function probToNivel(prob){
@@ -479,16 +451,7 @@ async function loadConfig(){
 }
 
 function renderConfigUI(){
-  document.getElementById('banner-pausa').classList.toggle('on',pausada);
   document.getElementById('banner-fin').classList.toggle('on',finalizada);
-
-  const btnP=document.getElementById('btn-pausar');
-  btnP.classList.toggle('active',pausada);
-  document.getElementById('btn-pausar-icon').textContent=pausada?'▶':'⏸';
-  document.getElementById('btn-pausar-text').textContent=pausada?'REANUDAR EVENTO':'PAUSAR EVENTO';
-  document.getElementById('pausa-sub').textContent=pausada
-    ?'El evento está en pausa. Presiona para retomar.'
-    :'Al pausar, la experiencia del participante continúa normal pero sin registro de ganadores.';
 
   const btnF=document.getElementById('btn-finalizar');
   btnF.classList.toggle('active',finalizada);
@@ -496,7 +459,6 @@ function renderConfigUI(){
   document.getElementById('btn-finalizar-text').textContent=finalizada?'REACTIVAR TABLERO':'FINALIZAR EVENTO';
 
   // Sincronizar el slider de nivel con la probabilidad actual
-  // (puede haber cambiado desde el admin)
   const nivelIdx=probToNivel(probabilidadActual);
   document.getElementById('nivel-slider').value=nivelIdx;
   renderNivelDisplay(nivelIdx);
@@ -505,8 +467,6 @@ function renderConfigUI(){
 // ══════════════════════════════════════════
 //  NIVEL DE LA DINÁMICA
 // ══════════════════════════════════════════
-let nivelPendiente=null, nivelConfirmTimer=null;
-
 function renderNivelDisplay(idx){
   const n=NIVELES[idx];
   document.getElementById('nivel-display').textContent=n.label;
@@ -519,43 +479,13 @@ function renderNivelDisplay(idx){
 function onNivelSlide(value){
   const idx=parseInt(value);
   renderNivelDisplay(idx);
-  initNivelConfirm(idx);
+  saveNivel(idx);
 }
 
 function setNivelPreset(idx){
   document.getElementById('nivel-slider').value=idx;
   renderNivelDisplay(idx);
-  initNivelConfirm(idx);
-}
-
-// Primera pulsación: solicita confirmación
-// Segunda pulsación en 3s: ejecuta el cambio
-function initNivelConfirm(idx){
-  const hint=document.getElementById('nivel-confirm-hint');
-  if(nivelPendiente===idx && nivelConfirmTimer){
-    // Segunda pulsación en tiempo: confirmar
-    clearTimeout(nivelConfirmTimer);
-    nivelConfirmTimer=null;
-    nivelPendiente=null;
-    hint.classList.remove('on');
-    saveNivel(idx);
-  } else {
-    // Primera pulsación: activar estado de espera
-    nivelPendiente=idx;
-    hint.classList.add('on');
-    clearTimeout(nivelConfirmTimer);
-    nivelConfirmTimer=setTimeout(()=>{
-      // Tiempo expirado sin segunda pulsación: cancelar
-      nivelPendiente=null;
-      nivelConfirmTimer=null;
-      hint.classList.remove('on');
-      // Revertir al valor actual (en caso de que el slider se movió por accidente)
-      const nivelActual=probToNivel(probabilidadActual);
-      document.getElementById('nivel-slider').value=nivelActual;
-      renderNivelDisplay(nivelActual);
-      toast('Cambio cancelado — presiona dos veces para confirmar');
-    }, 3000);
-  }
+  saveNivel(idx);
 }
 
 async function saveNivel(idx){
@@ -567,73 +497,12 @@ async function saveNivel(idx){
   toast(`⚡ Nivel actualizado: ${n.label}`);
 }
 
-// ══════════════════════════════════════════
-//  PAUSAR — con confirmación en 2 pasos
-// ══════════════════════════════════════════
-let pausaConfirmPending=false, pausaConfirmTimer=null;
-
-function requestPausa(){
-  const hint=document.getElementById('pausa-confirm-hint');
-  const btn=document.getElementById('btn-pausar');
-
-  if(pausaConfirmPending){
-    // Segunda pulsación: confirmar
-    clearTimeout(pausaConfirmTimer);
-    pausaConfirmPending=false;
-    hint.classList.remove('on');
-    btn.classList.remove('confirmar');
-    executePausa();
-  } else {
-    // Primera pulsación: activar estado de espera
-    pausaConfirmPending=true;
-    hint.classList.add('on');
-    btn.classList.add('confirmar');
-    pausaConfirmTimer=setTimeout(()=>{
-      pausaConfirmPending=false;
-      hint.classList.remove('on');
-      btn.classList.remove('confirmar');
-      toast('Cancelado — presiona dos veces para confirmar');
-    },3000);
-  }
-}
-
-async function executePausa(){
-  const next=!pausada;
-  const {error}=await _sb.rpc('set_pausa',{p_evento_id:ST.eventoId,p_pausado:next});
-  if(error){ toast('❌ Error al cambiar el estado'); return; }
-  pausada=next;
-  renderConfigUI();
-  const accion=next?'Evento pausado':'Evento reanudado';
-  addLog(accion);
-  toast(next?'⏸ Evento pausado':'▶ Evento reanudado');
-}
 
 // ══════════════════════════════════════════
-//  FINALIZAR — con confirmación en 2 pasos
+//  FINALIZAR
 // ══════════════════════════════════════════
-let finalizarConfirmPending=false, finalizarConfirmTimer=null;
-
 function requestFinalizar(){
-  const hint=document.getElementById('finalizar-confirm-hint');
-  const btn=document.getElementById('btn-finalizar');
-
-  if(finalizarConfirmPending){
-    clearTimeout(finalizarConfirmTimer);
-    finalizarConfirmPending=false;
-    hint.classList.remove('on');
-    btn.classList.remove('confirmar');
-    executeFinalizar();
-  } else {
-    finalizarConfirmPending=true;
-    hint.classList.add('on');
-    btn.classList.add('confirmar');
-    finalizarConfirmTimer=setTimeout(()=>{
-      finalizarConfirmPending=false;
-      hint.classList.remove('on');
-      btn.classList.remove('confirmar');
-      toast('Cancelado — presiona dos veces para confirmar');
-    },3000);
-  }
+  executeFinalizar();
 }
 
 async function executeFinalizar(){

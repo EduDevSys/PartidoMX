@@ -462,6 +462,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--negro);col
           <input type="range" id="prob-slider" min="0" max="100" step="5" value="20" oninput="onProbSlide(this.value)">
         </div>
         <div class="prob-presets">
+          <button class="prob-preset-btn" onclick="setProbPreset(0)">0%</button>
           <button class="prob-preset-btn" onclick="setProbPreset(10)">10%</button>
           <button class="prob-preset-btn" onclick="setProbPreset(20)">20%</button>
           <button class="prob-preset-btn" onclick="setProbPreset(30)">30%</button>
