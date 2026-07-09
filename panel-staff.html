@@ -347,14 +347,14 @@ let pendientes=[], pollTimer=null;
 // ── Tres niveles ──
 const NIVELES = [
   { prob:0.00 },  // 0: Todos pierden
-  { prob:0.20 },  // 1: Normal
-  { prob:0.50 },  // 2: Todos ganan
+  { prob:0.50 },  // 1: Normal
+  { prob:1.00 },  // 2: Todos ganan
 ];
 
 function probToNivel(prob){
-  if(prob <= 0.00) return 0;
-  if(prob >= 0.40) return 2;
-  return 1;
+  if(prob <= 0.00) return 0;   // Todos pierden
+  if(prob >= 0.90) return 2;   // Todos ganan
+  return 1;                     // Normal (cualquier valor entre 0 y 90%)
 }
 
 // ── Log de actividad de sesión ──
