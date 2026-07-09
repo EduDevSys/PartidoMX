@@ -344,7 +344,7 @@ body::before{
 }
 .fg input::placeholder{color:rgba(255,255,255,.25)}
 .fg input.er{border-color:var(--rojo);box-shadow:0 0 0 3px rgba(255,23,68,.15)}
-.fe{color:var(--rojo);font-size:12px;margin-top:5px;min-height:16px;font-weight:600}
+.fe{color:#ff4444;font-size:13px;margin-top:6px;min-height:18px;font-weight:700;display:flex;align-items:center;gap:5px;line-height:1.3}
 
 .cbg{
   display:flex;gap:14px;align-items:flex-start;
@@ -933,14 +933,14 @@ body::before{
     </div>
     <div class="home-ball-row" id="home-ball-row">🎲 ⚽ 🏆</div>
     <h1 class="home-title">PARTICIPA<br>Y GANA<br>PREMIOS</h1>
-    <p class="home-sub">Lanza el dado mundialista y descubre si <span>¡eres el ganador!</span></p>
+    <p class="home-sub">Prueba tu suerte y descubre si <span>¡eres el ganador!</span></p>
     <div class="home-chips">
-      <span class="chip gold">👕 Playeras</span>
-      <span class="chip">🎁 Premios sorpresa</span>
+      <span class="chip gold">🎁 Premios</span>
+      <span class="chip">✨ Sorpresas</span>
       <span class="chip">🏆 Solo para hoy</span>
     </div>
     <button class="btn btn-hero" onclick="show('s-reg');playClick()">
-      ⚽ &nbsp; ¡PARTICIPAR AHORA!
+      🎉 &nbsp; ¡PARTICIPAR AHORA!
     </button>
   </div>
 </div>
@@ -1683,19 +1683,19 @@ async function doReg(){
   const nom=vv('fn'), tel=vv('ft'), ema=vv('fe2'), dir=vv('fd');
   const ok=document.getElementById('fok').checked;
   let valid=true;
-  [['fn','en','Ingresa tu nombre'],['ft','et','Ingresa tu teléfono'],
+  [['fn','en','Ingresa tu nombre completo'],['ft','et','Ingresa tu teléfono'],
    ['fe2','ee','Ingresa tu correo'],['fd','ed','Ingresa tu colonia']]
   .forEach(([ii,ei,msg])=>{
     const inp=document.getElementById(ii), er=document.getElementById(ei);
-    if(!inp.value.trim()){ er.textContent=msg; inp.classList.add('er'); valid=false; }
-    else{ er.textContent=''; inp.classList.remove('er'); }
+    if(!inp.value.trim()){ er.innerHTML='⚠️ '+msg; inp.classList.add('er'); valid=false; }
+    else{ er.innerHTML=''; inp.classList.remove('er'); }
   });
   if(ema&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ema)){
-    document.getElementById('ee').textContent='Correo no válido';
+    document.getElementById('ee').innerHTML='⚠️ Correo no válido';
     document.getElementById('fe2').classList.add('er'); valid=false;
   }
   if(tel&&!/^[0-9]{10}$/.test(tel)){
-    document.getElementById('et').textContent='El teléfono debe tener exactamente 10 dígitos';
+    document.getElementById('et').innerHTML='⚠️ El teléfono debe tener exactamente 10 dígitos';
     document.getElementById('ft').classList.add('er'); valid=false;
   }
   if(!valid){ playWrong(); return; }
