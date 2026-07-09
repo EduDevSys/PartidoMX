@@ -897,10 +897,15 @@ async function executeReset(){
     }
     partsOk = true;
 
-    // 3) Quitar pausa si estaba activa (solo de este evento)
-    await _sb.rpc('set_pausa',{p_evento_id:ST.eventoId,p_pausado:false});
+    // 3) Quitar pausa si estaba activa y restaurar probabilidad a 50%
+    await Promise.all([
+      _sb.rpc('set_pausa',{p_evento_id:ST.eventoId,p_pausado:false}),
+      _sb.rpc('set_probabilidad',{p_evento_id:ST.eventoId,p_probabilidad:0.50}),
+    ]);
     dinamicaPausada=false;
     renderPauseUI();
+    probabilidadActual=0.50;
+    renderProbUI();
 
     closeResetModal();
     toast('✅ Dinámica reiniciada — todo quedó como al inicio');
